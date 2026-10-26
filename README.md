@@ -61,6 +61,9 @@ What differs from Qwen3.5 (details in `explorer/runtime_koto.py`):
 - **Steered chat** has a sampling panel (temperature, top-p, repetition and frequency penalty, seed) with tsumugi's
   defaults. All three columns share one seed, so they differ only by the push.
 - `GET /api/debug` shows the live model's current op and lock state.
+- **The in-page Claude** (and any agent driving the explorer) gets `explorer/agent_prompt_koto.md` on this backend: the
+  model's shape, its two looped passes, base-model prompting, the tools that exist here, and the binding questions it
+  is studied for. It adapts the Qwen prompt's method; `agent_prompt.local.md` still appends.
 
 The sweep (map, list and embeddings views) is not ported to kotodama yet; neuron pages, steered chat, lenses,
 connections, `fires` and live inference work. Serving beyond localhost: `EXPLORER_HOST`, `EXPLORER_ALLOW_HOSTS` and

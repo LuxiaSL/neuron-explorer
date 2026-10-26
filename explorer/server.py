@@ -912,13 +912,19 @@ def attachment_block(fid):
 
 AGENT_METHOD = os.path.join(ROOT, "explorer", "agent_methodology.md")
 AGENT_LOCAL = os.path.join(ROOT, "explorer", "agent_prompt.local.md")  # this machine's own additions, untracked
+AGENT_PROMPT_KOTO = os.path.join(ROOT, "explorer", "agent_prompt_koto.md")  # EXPLORER_BACKEND=koto
 
 
 def agent_prompt_file():
     """agent_prompt.md, then agent_methodology.md and agent_prompt.local.md when present, with {ROOT} filled in as
     this checkout's path, written beside the chat's working files."""
-    text = open(AGENT_PROMPT).read()
-    for extra in (AGENT_METHOD, AGENT_LOCAL):
+    if BACKEND == "koto":  # a kotodama model has its own prompt (shape, looped passes, base-model prompting, tools)
+        text = open(AGENT_PROMPT_KOTO).read()
+        extras: tuple[str, ...] = (AGENT_LOCAL,)
+    else:
+        text = open(AGENT_PROMPT).read()
+        extras = (AGENT_METHOD, AGENT_LOCAL)
+    for extra in extras:
         if os.path.exists(extra):
             text = text.rstrip() + "\n\n" + open(extra).read()
     text = text.replace("{ROOT}", ROOT)
