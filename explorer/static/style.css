@@ -314,3 +314,16 @@ tr.con .logit .tok { font-size: 10.5px; }
 #c-sampling input { width: 3.6em; text-align: center; background: var(--raise); border-radius: 3px; padding: 2px 0; color: var(--ink); }
 #c-sampling button { padding: 2px 8px; }
 #c-reads .pos0 { text-decoration: underline dotted; text-underline-offset: 3px; color: var(--dim); }
+
+/* lib: the named-neuron library */
+#lt-lib .rows li.wsum { border-bottom: 1px solid var(--raise); }
+.lib-pos { cursor: pointer; padding: 0 4px; border-radius: 3px; background: var(--raise); font-size: 11px; }
+.lib-pos:hover { color: var(--ink); }
+.lib-n .sg.up { color: var(--up); } .lib-n .sg.down { color: var(--down); }
+.lib-ex { margin-top: 4px; font-size: 12px; color: var(--dim); }
+.lib-open { display: block; width: 100%; box-sizing: border-box; margin: 6px 0 4px; background: var(--raise); border: 0; border-radius: 4px; padding: 5px 7px; color: var(--ink); font: 12px/1.4 var(--font); resize: vertical; outline: none; }
+.lib-go { display: flex; gap: 6px; align-items: center; font-size: 12px; }
+.lib-scale { width: 3.4em; text-align: center; background: var(--raise); border: 0; border-radius: 3px; color: var(--ink); padding: 2px 0; }
+.lib-out .lab { margin-top: 6px; font-size: 11px; color: var(--dim); }
+.lib-text { white-space: pre-wrap; font-size: 12px; line-height: 1.4; }
+.lib-text.steered { color: var(--ink); }

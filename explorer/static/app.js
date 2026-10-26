@@ -189,6 +189,8 @@ function showLeft(t) {
   leftTab = t;
   document.querySelectorAll("#ltabs button[data-lt]").forEach(b => b.classList.toggle("on", b.dataset.lt === t));
   $("#lt-net").classList.toggle("on", t === "net"); $("#lt-run").classList.toggle("on", t === "run");
+  $("#lt-lib").classList.toggle("on", t === "lib");
+  if (t === "lib") loadLibrary();
   $(`#ltabs button[data-lt="${t}"]`).classList.remove("fresh");
   syncLeftMap();
 }
@@ -1042,3 +1044,55 @@ $("#a-form").addEventListener("submit", e => { e.preventDefault(); if (agent.ctl
 $("#a-new").onclick = () => { resetAgent(); clearAgentMarks(); };
 loadAgent(); renderAgentActions();
 syncEdge(); updateInsets();
+
+
+// ---------- left panel: lib (the named-neuron library: neurons to open, recipes to try on any opening) ----------
+async function loadLibrary() {
+  const ol = $("#lib-rows");
+  ol.innerHTML = `<li class="head">loading…</li>`;
+  let c;
+  try { c = await (await fetch("/api/compendium")).json(); } catch (e) { ol.innerHTML = `<li class="head">${esc(String(e))}</li>`; return; }
+  if (c.error) { ol.innerHTML = `<li class="head">${esc(c.error)}</li>`; return; }
+  if (!c.neurons.length && !(c.recipes || []).length) {
+    ol.innerHTML = `<li class="head">no library yet (upload one: compendium.py push)</li>`; return;
+  }
+  const num = id => (String(id).match(/N(\d+)/) || [])[1];
+  let h = `<li class="head">neurons · click to open</li>`;
+  for (const e of c.neurons) {
+    const n = num(e.id), sg = e.pole === "+" ? "up" : "down";
+    const where = e.positions.map((p, i) => `<span class="lib-pos mono" data-l="${p}" data-n="${n}" title="${e.positions.length > 1 ? `pass ${i + 1}` : ""}">L${p}</span>`).join(" ");
+    h += `<li class="lib-n wsum"><div><span class="sg ${sg} mono">${e.pole === "+" ? "+" : "−"}</span> <b>${esc(e.name)}</b> <span class="dim mono">${esc(e.confidence || "")}</span></div>
+      <div class="dim">${where} · N${esc(n)}</div>
+      ${e.steer?.example ? `<div class="lib-ex">${esc(e.steer.example)}</div>` : ""}</li>`;
+  }
+  h += `<li class="head">recipes · stack, scale, try on any opening</li>`;
+  (c.recipes || []).forEach((r, i) => {
+    const chips = r.push.map(([spec, d]) => {
+      const m = String(spec).match(/L(\d+)\s*N(\d+)/);
+      return m ? `<span class="lib-pos mono" data-l="${m[1]}" data-n="${m[2]}">${esc(spec)} ${d > 0 ? "+" : ""}${d}</span>` : esc(spec);
+    }).join(" ");
+    h += `<li class="lib-r wsum" data-i="${i}"><div><b>${esc(r.name)}</b></div><div>${chips}</div>
+      <textarea class="lib-open" rows="2" spellcheck="false" placeholder="raw-text opening, e.g. She opened the door and">She opened the door and</textarea>
+      <div class="lib-go"><span class="lab">scale</span><input class="lib-scale mono" value="1.0" inputmode="decimal" aria-label="dose scale"><button class="lib-try">try</button></div>
+      <div class="lib-out"></div></li>`;
+  });
+  ol.innerHTML = h;
+  ol.querySelectorAll(".lib-pos").forEach(el => el.onclick = ev => { ev.stopPropagation(); openNeuron(+el.dataset.l, +el.dataset.n); });
+  ol.querySelectorAll(".lib-r").forEach(li => {
+    const r = c.recipes[+li.dataset.i];
+    li.querySelector(".lib-try").onclick = async () => {
+      const out = li.querySelector(".lib-out"), prompt = li.querySelector(".lib-open").value.trim();
+      const scale = parseFloat(li.querySelector(".lib-scale").value);
+      if (!prompt) { out.textContent = "write an opening first"; return; }
+      if (!Number.isFinite(scale)) { out.textContent = "scale must be a number"; return; }
+      const neurons = r.push.map(([spec, d]) => { const m = String(spec).match(/L(\d+)\s*N(\d+)/); return m && { layer: +m[1], n: +m[2], dose: d * scale }; }).filter(Boolean);
+      out.innerHTML = `<span class="dim">generating…</span>`;
+      try {
+        const res = await (await fetch("/api/agent/steer", { method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prompt, neurons, dose: 1.0, max_new: 70 }) })).json();
+        if (res.error) { out.textContent = res.error; return; }
+        out.innerHTML = `<div class="lab">baseline</div><div class="lib-text">${esc(res.baseline)}</div><div class="lab">steered</div><div class="lib-text steered">${esc(res.up)}</div>`;
+      } catch (e) { out.textContent = String(e); }
+    };
+  });
+}

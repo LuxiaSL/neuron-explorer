@@ -117,10 +117,11 @@ TOOLS = [
                                                            "required": ["layer", "head"]}}},
                      "required": ["text"]}},
     {"name": "top_firing", "description": "Live: run text through the model and list the neurons firing hardest at one "
-     "token (the first token containing `token`; omit it for the token with the strongest firing). Each neuron has its "
+     "token (`at`, an index, negative from the end; else the first token containing `token`; omit both for the token "
+     "with the strongest firing). Each neuron has its "
      "pole, score (activation over its usual extreme; 1 = as strong as its usual max), raw activation and steer lens. "
      "`layers` [lo, hi] restricts the layers. Doesn't change the person's screen; use show_text to show them.",
-     "inputSchema": {"type": "object", "properties": {"text": {"type": "string"}, "token": {"type": "string"},
+     "inputSchema": {"type": "object", "properties": {"text": {"type": "string"}, "token": {"type": "string"}, "at": {"type": "integer"},
                                                        "limit": {"type": "integer", "default": 30},
                                                        "layers": {"type": "array", "items": {"type": "integer"}},
                                                        "chat": {"type": "boolean", "default": False}},

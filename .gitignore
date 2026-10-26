@@ -24,3 +24,4 @@ sweep/pod_template.json
 
 # kotodama backend data (EXPLORER_KOTO_DATA default)
 koto-data/
+explorer/compendium.json

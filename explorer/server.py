@@ -218,6 +218,36 @@ async def set_name(req: Request):
     return {"ok": True}
 
 
+# The named-neuron library (neurons with pole, positions, what they fire on and steering examples, plus
+# multi-neuron recipes), uploaded from its source of truth by the person's tooling; it lives beside the run's data.
+COMPENDIUM = os.environ.get("EXPLORER_COMPENDIUM") or os.path.join(os.path.dirname(CACHE_DIR.rstrip("/")), "compendium.json")
+
+
+@app.get("/api/compendium")
+def compendium():
+    """The library, or {"neurons": [], "recipes": []} before one has been uploaded."""
+    try:
+        with open(COMPENDIUM) as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return {"neurons": [], "recipes": []}
+    except json.JSONDecodeError as e:
+        return JSONResponse({"error": f"compendium.json is not valid JSON: {e}"}, status_code=500)
+
+
+@app.post("/api/compendium")
+async def compendium_put(req: Request):
+    """Replace the library: {neurons: [{id, positions, pole, name, ...}], recipes: [{name, push: [[spec, dose]]}]}."""
+    b = await req.json()
+    if not isinstance(b, dict) or not isinstance(b.get("neurons"), list) or not isinstance(b.get("recipes", []), list):
+        return JSONResponse({"error": "want {neurons: [...], recipes: [...]}"}, status_code=400)
+    tmp = COMPENDIUM + ".tmp"
+    with open(tmp, "w") as f:
+        json.dump(b, f, indent=1, ensure_ascii=False)
+    os.replace(tmp, COMPENDIUM)
+    return {"ok": True, "neurons": len(b["neurons"]), "recipes": len(b.get("recipes", []))}
+
+
 @app.get("/api/embeddings")
 def embeddings(layer: int):
     d = load_layer(layer)
@@ -826,15 +856,23 @@ async def agent_compare(req: Request):
 
 @app.post("/api/agent/fires")
 async def agent_fires(req: Request):
-    """For Claude: run text through the model and list the neurons firing hardest at one token (the first whose text
-    contains `token`, else the token where any neuron fires hardest). Leaves the person's paste box alone."""
+    """For Claude: run text through the model and list the neurons firing hardest at one token (`at`, an index, negative
+    from the end; else the first whose text contains `token`; else the token where any neuron fires hardest). Leaves
+    the person's paste box alone."""
     b = await req.json()
     if off := _live_off():
         return off
     ids, acts, score = await score_text(b["text"], b.get("chat", False))
     toks = [rt.tok.decode([i]) for i in ids]
     want = b.get("token")
-    pos = next((i for i, t in enumerate(toks) if want and want in t), None)
+    pos = None
+    if b.get("at") is not None:  # an explicit token index (negative counts from the end), for repeated tokens
+        at = int(b["at"])
+        if not -len(toks) <= at < len(toks):
+            return {"error": f"at={at} outside the {len(toks)} tokens"}
+        pos = at % len(toks)
+    if pos is None:
+        pos = next((i for i, t in enumerate(toks) if want and want in t), None)
     if pos is None:
         pos = int(np.abs(score).max(axis=(0, 2)).argmax())
     S = score[:, pos, :]
