@@ -637,6 +637,29 @@ function step(dir) {
 $("#c-minus").onclick = () => step(-1); $("#c-plus").onclick = () => step(1);
 showDose();
 
+// sampling for steered chat: tsumugi's law by default (T .75, top-p off, repetition 1.2), remembered per browser
+const SAMPLING_DEFAULTS = { max: 300, temperature: 0.75, top_p: 1, repetition_penalty: 1.2, frequency_penalty: 0, seed: 0 };
+const S_FIELDS = { max: "#s-max", temperature: "#s-temp", top_p: "#s-topp", repetition_penalty: "#s-rep", frequency_penalty: "#s-freq", seed: "#s-seed" };
+state.chat.sampling = { ...SAMPLING_DEFAULTS };
+try { Object.assign(state.chat.sampling, JSON.parse(localStorage.getItem("explorer.sampling") || "{}")); } catch (e) { /* storage blocked */ }
+function showSampling() { for (const [k, sel] of Object.entries(S_FIELDS)) { const el = $(sel); if (el) el.value = state.chat.sampling[k]; } }
+for (const [k, sel] of Object.entries(S_FIELDS)) {
+  const el = $(sel); if (!el) continue;
+  el.addEventListener("change", () => {
+    const v = parseFloat(el.value);
+    if (Number.isFinite(v) && v >= 0) state.chat.sampling[k] = (k === "max" || k === "seed") ? Math.round(v) : v;
+    try { localStorage.setItem("explorer.sampling", JSON.stringify(state.chat.sampling)); } catch (e) { /* storage blocked */ }
+    showSampling();
+  });
+}
+const resetBtn = $("#s-reset");
+if (resetBtn) resetBtn.onclick = () => {
+  state.chat.sampling = { ...SAMPLING_DEFAULTS };
+  try { localStorage.removeItem("explorer.sampling"); } catch (e) { /* storage blocked */ }
+  showSampling();
+};
+showSampling();
+
 let running = null;
 state.thread = [];
 const ROWS = ["up", "zero", "down"];
@@ -669,7 +692,8 @@ $("#c-form").addEventListener("submit", async e => {
   running = ctl; $("#c-go").textContent = "stop";
   try {
     const res = await fetch("/api/steer", { method: "POST", headers: { "Content-Type": "application/json" }, signal: ctl.signal,
-      body: JSON.stringify({ layer: f.layer, n: f.n, prompt: text, dose, mode: state.chat.mode, history }) });
+      body: JSON.stringify({ layer: f.layer, n: f.n, prompt: text, dose, mode: state.chat.mode, history,
+        max_new: state.chat.sampling.max, sampling: (({ max, ...rest }) => rest)(state.chat.sampling) }) });
     if (!res.ok) throw new Error(`${res.status}: ${(await res.text()).slice(0, 160)}`);
     const reader = res.body.getReader(), dec = new TextDecoder();
     let buf = "";
@@ -708,6 +732,8 @@ async function runReads(f, text) {
   const m = Math.max(1e-6, ...r.units.map(u => Math.abs(u.act)));
   $("#c-reads").innerHTML = r.units.map(u => {
     const a = u.act / m, c = a >= 0 ? `rgba(255,181,71,${a * 0.85})` : `rgba(255,79,154,${-a * 0.85})`;
+    // position 0 carries massive-activation units: the server leaves it out of reads (raw value kept as pos0_act)
+    if (u.pos0_act != null) return `<span class="pos0" title="position 0 (left out of reads; raw ${u.pos0_act.toFixed(1)})">${esc(u.text)}</span>`;
     return `<span style="background:${c}" title="${u.pieces.map(v => v.toFixed(3)).join(" · ")}">${esc(u.text)}</span>`;
   }).join("");
 }

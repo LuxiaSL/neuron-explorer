@@ -24,7 +24,7 @@ REFERENCE_TEXT = (
 )
 
 
-CACHE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cache")
+CACHE = os.environ.get("EXPLORER_CACHE") or os.path.join(os.path.dirname(os.path.abspath(__file__)), "cache")
 
 
 class Runtime:

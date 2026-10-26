@@ -20,17 +20,35 @@ from transformers import AutoConfig
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "sweep"))
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+BACKEND = os.environ.get("EXPLORER_BACKEND", "qwen")
+if BACKEND == "koto":  # a kotodama model's caches, runs, stats and names live apart from the shipped Qwen data
+    _KD = os.environ.get("EXPLORER_KOTO_DATA") or os.path.join(ROOT, "koto-data")
+    for _var, _sub in (("EXPLORER_CACHE", "cache"), ("EXPLORER_RUNS", "runs"), ("EXPLORER_STATS", "stats"),
+                       ("EXPLORER_NAMES", "names.json")):
+        os.environ.setdefault(_var, os.path.join(_KD, _sub))
+    for _sub in ("cache", "runs", "stats"):
+        os.makedirs(os.environ[f"EXPLORER_{_sub.upper()}"], exist_ok=True)
 from rank import compute_units  # noqa: E402
-from runtime import NO_MODEL, Runtime  # noqa: E402
+from runtime import NO_MODEL  # noqa: E402
 
-RUNS, STATS = os.path.join(ROOT, "runs"), os.path.join(ROOT, "stats")
-NAMES = os.path.join(ROOT, "explorer", "names.json")
+RUNS = os.environ.get("EXPLORER_RUNS") or os.path.join(ROOT, "runs")
+STATS = os.environ.get("EXPLORER_STATS") or os.path.join(ROOT, "stats")
+NAMES = os.environ.get("EXPLORER_NAMES") or os.path.join(ROOT, "explorer", "names.json")
 PORT = int(os.environ.get("PORT", 8791))
-_cfg = AutoConfig.from_pretrained("Qwen/Qwen3.5-4B").get_text_config()
-ARCH = {"n_layers": _cfg.num_hidden_layers, "hidden": _cfg.hidden_size, "inter": _cfg.intermediate_size,
-        "layer_types": list(_cfg.layer_types), "attn_heads": _cfg.num_attention_heads,
-        "kv_heads": _cfg.num_key_value_heads, "linear_k_heads": _cfg.linear_num_key_heads,
-        "linear_v_heads": _cfg.linear_num_value_heads}
+HOST = os.environ.get("EXPLORER_HOST", "127.0.0.1")
+CACHE_DIR = os.environ.get("EXPLORER_CACHE") or os.path.join(ROOT, "explorer", "cache")
+if BACKEND == "koto":  # a kotodama checkpoint (runtime_koto.py): arch from the preset, layers = effective positions
+    from runtime_koto import KotoRuntime as Runtime, arch  # noqa: E402
+    ARCH = arch()
+    MODEL_NAME = ARCH["model"]
+else:
+    from runtime import Runtime  # noqa: E402
+    MODEL_NAME = "Qwen/Qwen3.5-4B"
+    _cfg = AutoConfig.from_pretrained(MODEL_NAME).get_text_config()
+    ARCH = {"n_layers": _cfg.num_hidden_layers, "hidden": _cfg.hidden_size, "inter": _cfg.intermediate_size,
+            "layer_types": list(_cfg.layer_types), "attn_heads": _cfg.num_attention_heads,
+            "kv_heads": _cfg.num_key_value_heads, "linear_k_heads": _cfg.linear_num_key_heads,
+            "linear_v_heads": _cfg.linear_num_value_heads}
 
 app = FastAPI()
 
@@ -38,13 +56,18 @@ app = FastAPI()
 # only this machine's own pages and tools: a page on another site (or a DNS name rebound to 127.0.0.1) can't reach
 # the API, which runs the model and a Claude agent with a shell
 LOCAL_HOSTS = {f"localhost:{PORT}", f"127.0.0.1:{PORT}", f"[::1]:{PORT}"}
+# Served beyond this machine (EXPLORER_HOST=0.0.0.0): the Host names it may be reached by (EXPLORER_ALLOW_HOSTS, comma
+# host:port) and the client addresses allowed in (EXPLORER_CLIENTS, comma IPs; loopback is always allowed).
+LOCAL_HOSTS |= {h.strip() for h in os.environ.get("EXPLORER_ALLOW_HOSTS", "").split(",") if h.strip()}
+CLIENTS = {"127.0.0.1", "::1"} | {c.strip() for c in os.environ.get("EXPLORER_CLIENTS", "").split(",") if c.strip()}
 
 
 @app.middleware("http")
 async def local_only(request, call_next):
     from urllib.parse import urlparse
     origin = request.headers.get("origin")
-    if (request.headers.get("host") not in LOCAL_HOSTS
+    if ((request.client is None or request.client.host not in CLIENTS)
+            or request.headers.get("host") not in LOCAL_HOSTS
             or (origin and urlparse(origin).netloc not in LOCAL_HOSTS)
             or request.headers.get("sec-fetch-site") in ("cross-site", "same-site")):
         return PlainTextResponse("forbidden", status_code=403)
@@ -145,7 +168,7 @@ def names():
 @app.get("/api/index")
 def index():
     runs = layer_runs()
-    return {"model": "Qwen/Qwen3.5-4B", "arch": ARCH,
+    return {"model": MODEL_NAME, "arch": ARCH,
             "layers": {str(l): os.path.basename(p) for l, p in sorted(runs.items())}, "status": rt.status}
 
 
@@ -241,6 +264,19 @@ async def reads(req: Request):
     return await asyncio.to_thread(rt.read, int(b["layer"]), int(b["n"]), b["text"], b.get("chat", True))
 
 
+@app.get("/api/debug")
+def debug():
+    """What the live model is doing right now: the current op (steer / idle), its pushes and tokens so far, whether the
+    model lock is held, and the runtime's load status — for diagnosing a stalled request."""
+    import time as _t
+    act = dict(getattr(rt, "activity", {}) or {})
+    if "since" in act:
+        act["seconds"] = round(_t.time() - act.pop("since"), 1)
+    return {"status": rt.status, "lock_held": rt.lock.locked(), "activity": act, "backend": BACKEND,
+            "sampling_defaults": getattr(sys.modules.get("runtime_koto"), "DEFAULT_SAMPLING", None),
+            "threads": [t.name for t in threading.enumerate()]}
+
+
 @app.post("/api/steer")
 async def steer(req: Request):
     b = await req.json()
@@ -255,10 +291,13 @@ async def steer(req: Request):
                 for turn in b.get("history", []):
                     msgs += [{"role": "user", "content": turn["user"]}, {"role": "assistant", "content": turn["replies"][r]}]
                 rows.append(msgs + [{"role": "user", "content": b["prompt"]}])
+            kw = {"sampling": b["sampling"]} if b.get("sampling") else {}   # koto backend: temperature / top_p / penalties
             for row, delta in rt.steer_stream(int(b["layer"]), int(b["n"]), rows, float(b["dose"]),
-                                              b.get("mode", "add"), int(b.get("max_new", 300)), cancel):
+                                              b.get("mode", "add"), int(b.get("max_new", 300)), cancel, **kw):
                 loop.call_soon_threadsafe(q.put_nowait, {"row": row, "t": delta})
         except Exception as e:  # surfaced in the UI next to the chat
+            import traceback
+            traceback.print_exc()
             loop.call_soon_threadsafe(q.put_nowait, {"row": None, "error": repr(e)})
 
     threading.Thread(target=work, daemon=True).start()
@@ -279,7 +318,7 @@ async def steer(req: Request):
     return StreamingResponse(events(), media_type="text/event-stream")
 
 
-LENS_INDEX = os.path.join(ROOT, "explorer", "cache", "lens_index.npz")
+LENS_INDEX = os.path.join(CACHE_DIR, "lens_index.npz")
 _lens = {}
 
 
@@ -327,7 +366,7 @@ async def search(q: str, limit: int = 300):
     return {"ready": True, "results": res, "tokens": int(len(match)), "total": len(out)}
 
 
-ACT_SCALE = os.path.join(ROOT, "explorer", "cache", "act_scale.npz")
+ACT_SCALE = os.path.join(CACHE_DIR, "act_scale.npz")
 MAX_INFER_TOKENS = 1024  # [32, T, 9216] float32 activations plus scores: about 2.4 GB at this length
 
 
@@ -471,7 +510,7 @@ def infer_paths(pos: int, top: int = 300, min: float = 1.0):
 def layout(kind: str = "writes"):
     """Seriated grid layout: cell index (row * side + col) for every neuron, base64 int16, layer-major."""
     import base64
-    path = os.path.join(ROOT, "explorer", "cache", f"layout_{kind}.npz")
+    path = os.path.join(CACHE_DIR, f"layout_{kind}.npz")
     if not os.path.exists(path):
         return {"available": False}
     cell = np.load(path)["cell"].astype(np.int16)
@@ -485,6 +524,8 @@ def cone_links(layer, n, k=2, zmin=15, cap=20000, first=None, hops=None):
     Rows: src layer, src neuron, dst layer, dst neuron, z * sign, hop (positive downstream, negative upstream)."""
     ci = rt.con_index()
     out = []
+    if ci is None:  # no connections.npz built for this model yet (build_connections*.py): an empty cone, not a 500
+        return out
     for side, step in (("down", 1), ("up", -1)):
         zs, ls, ns, sg = ci[f"{side}_z"], ci[f"{side}_layer"], ci[f"{side}_n"], ci[f"{side}_sign"]
         front, seen, hop, start = [(layer, n)], {(layer, n)}, 1, len(out)
@@ -581,7 +622,7 @@ def web_summary(layer: int, n: int, first: int = 5, k: int = 2, top: int = 30, s
 # Each chat is a `claude -p` session resumed turn by turn. Its tools come from agent_mcp.py, which reads through the
 # endpoints below and sends map actions back through /api/agent/ui into the chat's event stream.
 AGENT_PROMPT = os.path.join(ROOT, "explorer", "agent_prompt.md")
-AGENT_DIR = os.path.join(ROOT, "explorer", "cache", "agent")  # claude's cwd, so no project settings or CLAUDE.md apply
+AGENT_DIR = os.path.join(CACHE_DIR, "agent")  # claude's cwd, so no project settings or CLAUDE.md apply
 _chats = {}
 _act = {}
 
@@ -599,7 +640,7 @@ def act_range(layer, n):
 @app.get("/api/agent/overview")
 def agent_overview():
     runs = layer_runs()
-    return {"model": "Qwen/Qwen3.5-4B", "arch": ARCH, "layers_with_sweeps": sorted(runs),
+    return {"model": MODEL_NAME, "arch": ARCH, "layers_with_sweeps": sorted(runs),
             "named_neurons": len(names()), "live_model": not NO_MODEL}
 
 
@@ -1072,4 +1113,4 @@ def preload():
 
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="127.0.0.1", port=PORT)
+    uvicorn.run(app, host=HOST, port=PORT)

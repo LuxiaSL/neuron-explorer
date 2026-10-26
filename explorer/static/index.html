@@ -90,6 +90,15 @@
           <span class="stepper"><button type="button" id="c-minus" aria-label="smaller">−</button><input id="c-dose" class="mono" inputmode="decimal" aria-label="dose" value="0.8"><button type="button" id="c-plus" aria-label="larger">+</button></span>
           <button type="button" id="c-clear" class="dim">clear</button>
         </div>
+        <div id="c-sampling" class="mono" title="sampling for steered chat (same seed on all three columns, so they differ only by the push); temp 0 = greedy">
+          <label>max <input id="s-max" inputmode="numeric" value="300"></label>
+          <label>temp <input id="s-temp" inputmode="decimal" value="0.75"></label>
+          <label>top-p <input id="s-topp" inputmode="decimal" value="1"></label>
+          <label>rep <input id="s-rep" inputmode="decimal" value="1.2"></label>
+          <label>freq <input id="s-freq" inputmode="decimal" value="0"></label>
+          <label>seed <input id="s-seed" inputmode="numeric" value="0"></label>
+          <button type="button" id="s-reset" class="dim">tsumugi defaults</button>
+        </div>
         <div class="row"><input id="c-input" placeholder="Who are you?" autocomplete="off"><button id="c-go" type="submit">run</button></div>
       </form>
     </div>

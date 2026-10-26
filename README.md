@@ -29,6 +29,43 @@ steered chat, lens, connections and live inference over your own text.
   `explorer/agent_prompt.local.md` when present (untracked, for your own additions);
   `EXPLORER_CLAUDE_MODEL` picks the model. The server answers only pages and tools on this machine.
 
+## kotodama-tsumugi backend
+
+The explorer also runs on [kotodama-tsumugi](https://huggingface.co/LuxiaSL/kotodama-tsumugi-1b), a 1.4B base model
+with looped depth (52 unique layers run as 72 effective positions; 39–58 reuse 19–38) and block attention residuals.
+Code: [github.com/LuxiaSL/kotodama](https://github.com/LuxiaSL/kotodama).
+
+    git clone https://github.com/LuxiaSL/kotodama ../kotodama
+    uv sync && uv pip install -e ../kotodama                  # Python >= 3.12
+    export EXPLORER_BACKEND=koto EXPLORER_KOTO_CKPT=hf:LuxiaSL/kotodama-tsumugi-1b
+    uv run python explorer/build_connections_koto.py --out koto-data/cache/connections.npz   # once
+    uv run python explorer/server.py                          # http://localhost:8791
+
+`EXPLORER_KOTO_CKPT` takes `hf:REPO[@REVISION]` (weights from the Hub, e.g. a step branch of
+[the training trajectory](https://huggingface.co/LuxiaSL/kotodama-tsumugi-1b-trajectory)) or a local kotodama
+checkpoint. The kotodama backend keeps its caches, runs, stats and names under `koto-data/`
+(`EXPLORER_KOTO_DATA`), apart from the shipped Qwen data. The first start builds the lens index and activation scales.
+`EXPLORER_KOTO_SIZE` picks the preset (default `1b-tsumugi`).
+
+What differs from Qwen3.5 (details in `explorer/runtime_koto.py`):
+- **Layer = effective position.** A looped position shares its weights with the core, so neuron n at 25 and at 45 is
+  the same weights on pass 1 and pass 2, with different activations. Reads and pushes are per pass; to push "the
+  neuron" in both passes, push both positions.
+- **Dose unit:** the median norm of the state entering the position's FFN (attention residuals have no single residual
+  stream).
+- **Connections** read through each position's own norm and ignore the input-dependent residual routing (weight-only
+  leads). Pass-1 → pass-2 links, including a neuron to its own second-pass self, show up.
+- **Prompts are raw text** (a base model; no chat template).
+- **Position 0** carries massive-activation units (≈10²–10⁴ at the first token, 0 after), so reads, fires and
+  activation views leave it out (`EXPLORER_SKIP_POS0=1`, default); reads keep the raw value as `pos0_act`.
+- **Steered chat** has a sampling panel (temperature, top-p, repetition and frequency penalty, seed) with tsumugi's
+  defaults. All three columns share one seed, so they differ only by the push.
+- `GET /api/debug` shows the live model's current op and lock state.
+
+The sweep (map, list and embeddings views) is not ported to kotodama yet; neuron pages, steered chat, lenses,
+connections, `fires` and live inference work. Serving beyond localhost: `EXPLORER_HOST`, `EXPLORER_ALLOW_HOSTS` and
+`EXPLORER_CLIENTS` allowlist hosts and client addresses.
+
 ## Sweep
 
 Runs on a CUDA 13 GPU pod with the steering fork of vLLM ([RhizoNymph/vllm](https://github.com/RhizoNymph/vllm)).

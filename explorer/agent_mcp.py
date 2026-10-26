@@ -11,7 +11,8 @@ import urllib.request
 URL = os.environ.get("EXPLORER_URL", "http://127.0.0.1:8791")
 CHAT = os.environ.get("EXPLORER_CHAT", "")
 
-LN = {"layer": {"type": "integer", "description": "layer, 0-31"}, "n": {"type": "integer", "description": "neuron, 0-9215"}}
+LN = {"layer": {"type": "integer", "description": os.environ.get("EXPLORER_LAYER_DESC", "layer, 0-31")},
+      "n": {"type": "integer", "description": os.environ.get("EXPLORER_NEURON_DESC", "neuron, 0-9215")}}
 TOOLS = [
     {"name": "overview", "description": "Model architecture and which layers have sweep runs (rollouts and rankings).",
      "inputSchema": {"type": "object", "properties": {}}},

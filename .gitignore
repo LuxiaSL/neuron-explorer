@@ -21,3 +21,6 @@ explorer/*.local.md
 
 # per-machine pod settings
 sweep/pod_template.json
+
+# kotodama backend data (EXPLORER_KOTO_DATA default)
+koto-data/

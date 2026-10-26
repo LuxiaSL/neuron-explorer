@@ -308,3 +308,9 @@ tr.con .logit .tok { font-size: 10.5px; }
 #net .lrow { display: flex; gap: 6px; align-items: baseline; margin-bottom: 3px; }
 #net .lrow .sgn { flex: none; width: 1em; font-family: var(--mono); }
 #net .lrow .sgn.up { color: var(--up); } #net .lrow .sgn.down { color: var(--down); }
+
+#c-sampling { display: flex; flex-wrap: wrap; gap: 6px 10px; margin-top: 8px; font-size: 11px; color: var(--dim); align-items: center; }
+#c-sampling label { display: inline-flex; align-items: center; gap: 4px; }
+#c-sampling input { width: 3.6em; text-align: center; background: var(--raise); border-radius: 3px; padding: 2px 0; color: var(--ink); }
+#c-sampling button { padding: 2px 8px; }
+#c-reads .pos0 { text-decoration: underline dotted; text-underline-offset: 3px; color: var(--dim); }
