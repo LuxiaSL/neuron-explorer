@@ -22,11 +22,13 @@ What differs from Qwen3.5, and how it is handled:
 Forward passes run through kotodama.model.capture (the eager AttnRes walker, parity-tested against the model, with a
 bit-exact KV cache for generation), which calls every norm / attention / FFN as a module, so the hooks see them.
 """
+import json
 import logging
 import os
 import time
 import types
 
+import numpy as np
 import torch
 
 log = logging.getLogger("explorer.koto")
@@ -49,6 +51,12 @@ TURN_SEP = os.environ.get("EXPLORER_TURN_SEP", "\n\n")
 # reads keep the raw value on the first unit as `pos0_act`.
 SKIP_POS0 = os.environ.get("EXPLORER_SKIP_POS0", "1") == "1"
 DEFAULT_SAMPLING = {"temperature": 0.75, "top_p": 1.0, "repetition_penalty": 1.2, "frequency_penalty": 0.0, "seed": 0}
+
+
+def _finite(x, nd):
+    """round(float(x), nd), or None for NaN / inf (JSON has no NaN)."""
+    x = float(x)
+    return round(x, nd) if np.isfinite(x) else None
 
 
 def arch():
@@ -349,6 +357,180 @@ class KotoRuntime(base.Runtime):
                          [len(x) for x in out_ids])
                 self.activity = {"op": "idle"}
         yield None, None
+
+    # ---------- J-lens (Jacobian lens; data from build_jlens_koto.py) ----------
+    # J_L maps a change of `partial` right after position L's FFN to the change of h_final (the final routed state
+    # before the last norm), averaged over web text; the J-lens reads a state h as softmax(W_U · norm(J_L h)). The
+    # logit lens is J = I. Index: jlens_index.npz (lens_index layout + stab10, pair_cos, core); matrices: jlens_J.npy
+    # (float16 [L, D, D]); provenance: jlens_meta.json. Every J view is absent (None / available: false) without them.
+    JLENS_COMMON_FRAC = 0.03   # a token in the top-12 of >= 3% of a position's neurons is flagged layer-common
+
+    def jlens_index(self):
+        if getattr(self, "_jl_idx", None) is None:
+            path = os.path.join(base.CACHE, "jlens_index.npz")
+            self._jl_idx = False
+            if os.path.exists(path):
+                try:
+                    z = np.load(path)
+                    self._jl_idx = {k: z[k] for k in z.files}
+                except Exception:
+                    log.exception("jlens_index.npz unreadable; J-lens views off")
+        return self._jl_idx or None
+
+    def jlens_meta(self):
+        if getattr(self, "_jl_meta", None) is None:
+            path = os.path.join(base.CACHE, "jlens_meta.json")
+            try:
+                self._jl_meta = json.load(open(path)) if os.path.exists(path) else {}
+            except Exception:
+                log.exception("jlens_meta.json unreadable")
+                self._jl_meta = {}
+            fit_ckpt = self._jl_meta.get("ckpt")
+            if fit_ckpt and CKPT and os.path.basename(fit_ckpt) != os.path.basename(CKPT):
+                log.warning("J-lens was fitted on %s but the explorer serves %s", fit_ckpt, CKPT)
+        return self._jl_meta
+
+    def jlens_common(self, layer):
+        """Token ids that sit in the J-lens top-12 (either pole) of >= JLENS_COMMON_FRAC of the position's neurons:
+        layer-wide directions the J readout favours, not specific to a neuron (shown faded, flagged)."""
+        idx = self.jlens_index()
+        if idx is None:
+            return set()
+        cache = self.__dict__.setdefault("_jl_common", {})
+        if layer not in cache:
+            ids = np.concatenate([idx["up"][layer].ravel(), idx["down"][layer].ravel()])
+            cnt = np.bincount(ids)
+            cache[layer] = set(np.nonzero(cnt >= self.JLENS_COMMON_FRAC * idx["up"].shape[1])[0].tolist())
+        return cache[layer]
+
+    def jlens_neuron(self, layer, n, k=12):
+        """The neuron's write d_n read through J_layer: {jlens_up, jlens_down, jlens_stab, jlens_common} or None."""
+        idx = self.jlens_index()
+        if idx is None or not 0 <= layer < idx["up"].shape[0]:
+            return None
+        v, common = self.vocab_strings(), self.jlens_common(layer)
+        up, down = idx["up"][layer, n, :k].tolist(), idx["down"][layer, n, :k].tolist()
+        st = float(idx["stab10"][layer, n]) if "stab10" in idx else float("nan")
+        return {"jlens_up": [v[t] for t in up], "jlens_down": [v[t] for t in down],
+                "jlens_stab": None if st != st else round(st, 2),
+                "jlens_common": sorted({v[t] for t in up + down if t in common})}
+
+    def lens(self, layer, n, k=16):
+        out = super().lens(layer, n, k)
+        jl = self.jlens_neuron(layer, n, k)
+        if jl is not None:
+            out = {**out, **jl}
+        return out
+
+    def jlens_pair(self, layer, n, k=10, live=False):
+        """A looped core neuron's write read through J at both passes (p, p + loop_len): the two top-k lists (each
+        pole), their overlap, the cosine of the two J-images of d_n, and each pass's split-half overlap (the ceiling a
+        pass-1 / pass-2 overlap can be read against). live=True recomputes both readouts from the served weights and
+        jlens_J.npy (fp16), as a check of the index against this model."""
+        idx = self.jlens_index()
+        if idx is None or "core" not in idx:
+            return {"available": False, "reason": "no jlens_index.npz with a loop core (build_jlens_koto.py)"}
+        p0, ll = (int(x) for x in idx["core"])
+        if not p0 <= layer < p0 + 2 * ll:
+            return {"available": False, "reason": f"L{layer} is not a looped core position ({p0}–{p0 + 2 * ll - 1})"}
+        p = layer if layer < p0 + ll else layer - ll
+        q = p + ll
+        v, out = self.vocab_strings(), {"available": True, "layer": layer, "n": n, "p": p, "p2": q}
+        for name, L_ in (("pass1", p), ("pass2", q)):
+            common = self.jlens_common(L_)
+            out[name] = {"layer": L_, "up": [v[t] for t in idx["up"][L_, n, :k]],
+                         "down": [v[t] for t in idx["down"][L_, n, :k]],
+                         "stab10": _finite(idx["stab10"][L_, n], 2) if "stab10" in idx else None,
+                         "common": sorted({v[t] for t in np.concatenate([idx["up"][L_, n, :k], idx["down"][L_, n, :k]])
+                                           if t in common})}
+        art = self.jlens_common(p) | self.jlens_common(q)
+        for pole in ("up", "down"):
+            a, b = set(idx[pole][p, n, :k].tolist()), set(idx[pole][q, n, :k].tolist())
+            out[f"overlap_{pole}"] = round(len(a & b) / k, 2)
+            # the same, counting only tokens that are not layer-wide J directions at either pass (those inflate overlap)
+            out[f"overlap_{pole}_specific"] = round(len((a & b) - art) / k, 2)
+            out[f"shared_{pole}"] = [v[t] for t in idx[pole][p, n, :k] if int(t) in b]
+        out["cos"] = _finite(idx["pair_cos"][p - p0, n], 3) if "pair_cos" in idx else None
+        out["note"] = ("overlap = shared top-k / k (overlap_*_specific: shared tokens that are not layer-wide J "
+                       "directions at either pass); read it against stab10 (each pass's split-half top-10 overlap, the "
+                       "ceiling) and the layer means: p vs p+20 top-10 overlap averages ~0.18 over core neurons")
+        if live:
+            J = self._jlens_J()
+            if J is None:
+                out["live"] = {"error": "no jlens_J.npy"}
+            else:
+                with self.lock, torch.inference_mode():
+                    d = self.koto.layers[p].ffn.down_proj.weight[:, n].float()
+                    W, g = self.koto.get_lm_head_weight().float(), self.koto.norm.weight.float()
+                    live_out = {}
+                    for name, L_ in (("pass1", p), ("pass2", q)):
+                        lg = W @ (g * (J[L_].float() @ d))
+                        live_out[name] = {"up": [v[t] for t in lg.topk(k).indices.tolist()],
+                                          "down": [v[t] for t in (-lg).topk(k).indices.tolist()]}
+                out["live"] = live_out
+        return out
+
+    def _jlens_J(self):
+        """jlens_J.npy on the model's device as float16 [L, D, D], loaded once (None without it)."""
+        if getattr(self, "_jl_J", None) is None:
+            path = os.path.join(base.CACHE, "jlens_J.npy")
+            self._jl_J = False
+            if os.path.exists(path):
+                self.ensure_loaded()
+                try:
+                    arr = np.load(path, mmap_mode="r")
+                    D = self.koto.config.hidden_size
+                    if arr.shape != (len(self.koto.layers), D, D):
+                        raise ValueError(f"jlens_J.npy shape {arr.shape}, model wants {(len(self.koto.layers), D, D)}")
+                    self._jl_J = torch.from_numpy(np.array(arr)).to(self.dev, torch.float16)
+                except Exception:
+                    log.exception("jlens_J.npy unusable; live J-lens off")
+        return self._jl_J if self._jl_J is not False else None
+
+    def jlens_grid(self, ids, layers=None, k=5, lens="j", at=None, targets=None):
+        """Per position x token: the top-k tokens (and top-1 probability) of the state `partial` after each FFN,
+        read through the J-lens (lens='j': softmax(W_U · norm(J_L h))) or the logit lens on the same state
+        (lens='logit': J = I). ids: token ids; layers: [lo, hi] inclusive; at: one token index (negative from the end)
+        to return only that column; targets: token ids whose rank (1 = top) is returned at every cell."""
+        from kotodama.model import capture
+
+        if lens not in ("j", "logit"):
+            raise ValueError("lens must be 'j' or 'logit'")
+        J = self._jlens_J() if lens == "j" else None
+        if lens == "j" and J is None:
+            return {"available": False, "reason": "no jlens_J.npy in the cache (build_jlens_koto.py)"}
+        self.ensure_loaded()
+        nL = len(self.koto.layers)
+        lo, hi = (0, nL - 1) if not layers else (max(0, int(layers[0])), min(nL - 1, int(layers[1])))
+        if lo > hi:
+            raise ValueError(f"empty layer range {layers}")
+        with self.lock, torch.inference_mode():
+            x = torch.tensor([ids], device=self.dev)
+            _, cap = capture.instrumented_forward(self.koto, x, light=True)
+            parts = cap["residual_partial"][1::2]                       # after each position's FFN: (1, T, D) each
+            T = x.shape[1]
+            cols = list(range(T)) if at is None else [int(at) % T]
+            W, g, eps = self.koto.get_lm_head_weight().float(), self.koto.norm.weight.float(), self.koto.norm.eps
+            tg = torch.tensor(targets or [], device=self.dev, dtype=torch.long)
+            top, prob, ranks, common = [], [], [], []
+            for L_ in range(lo, hi + 1):
+                h = parts[L_][0, cols].float()                          # (C, D)
+                u = h @ J[L_].float().T if J is not None else h
+                u = u * torch.rsqrt(u.pow(2).mean(-1, keepdim=True) + eps) * g
+                lg = u @ W.T                                            # (C, V)
+                p = torch.softmax(lg, -1)
+                tv, ti = p.topk(k, -1)
+                top.append(ti.tolist())
+                cm = self.jlens_common(L_) if lens == "j" else set()
+                common.append(sorted({t for row in top[-1] for t in row if t in cm}))
+                prob.append([round(float(r[0]), 3) for r in tv])
+                if len(tg):
+                    ranks.append(((lg.unsqueeze(1) > lg[:, tg].unsqueeze(-1)).sum(-1) + 1).tolist())   # (C, n_tg)
+        v = self.vocab_strings()
+        return {"available": True, "lens": lens, "layers": [lo, hi], "positions": cols, "k": k,
+                "top": [[[v[t] for t in row] for row in layer] for layer in top], "p_top1": prob,
+                "common": [[v[t] for t in c] for c in common],
+                **({"target_ranks": ranks} if len(tg) else {})}
 
     # ---------- connections: plain RMSNorm weights ----------
     def connections(self, layer, n, k=24, lens_k=5):

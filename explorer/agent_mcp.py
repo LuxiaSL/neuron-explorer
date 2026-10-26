@@ -17,7 +17,9 @@ TOOLS = [
     {"name": "overview", "description": "Model architecture and which layers have sweep runs (rollouts and rankings).",
      "inputSchema": {"type": "object", "properties": {}}},
     {"name": "neuron", "description": "Everything cached for one neuron: name, logit lens and steer lens (with KL) for "
-     "both poles, activation range, sweep rank if any, and its 24 strongest direct-path links each way (writes_into, "
+     "both poles, the J-lens (jlens_up / jlens_down: its write read through the Jacobian lens; jlens_stab = split-half "
+     "top-10 overlap, low = unreliable; jlens_common = shown tokens that are layer-wide artifacts; jlens_passes for core "
+     "neurons: the other pass's J readout and the overlap) when built, activation range, sweep rank if any, and its 24 strongest direct-path links each way (writes_into, "
      "reads_from) with each linked neuron's steer lens, top words and name.",
      "inputSchema": {"type": "object", "properties": LN, "required": ["layer", "n"]}},
     {"name": "rollouts", "description": "Sweep rollouts for a neuron: steered text per prompt and dose beside the "
@@ -126,6 +128,32 @@ TOOLS = [
                                                        "layers": {"type": "array", "items": {"type": "integer"}},
                                                        "chat": {"type": "boolean", "default": False}},
                      "required": ["text"]}},
+    {"name": "jlens", "description": "Live (kotodama only): the J-lens (Jacobian lens) on a text. At each position "
+     "L the state is `partial` (the block's running sum right after L's FFN), read as softmax(W_U norm(J_L h)): what "
+     "that state will do to the final output, via everything downstream, not only the direct path the logit lens "
+     "assumes. Returns per layer the top-k tokens and top-1 probability at token `at` (default -1, the last token; "
+     "null = every token, at most 512) and, with `targets`, the rank (1 = top) of each target string's first token "
+     "per layer: the way to ask 'is the hidden intermediate (the bridge entity, the corrected word, the partial "
+     "result) legible here, and on which pass'. lens 'logit' gives the logit lens on the same state for comparison. "
+     "Better than the logit lens at WHICH concept (which language, which digit); a few tokens recur across many "
+     "readouts (artifact directions), so trust a token that ranks high specifically, not one that is always there.",
+     "inputSchema": {"type": "object", "properties": {"text": {"type": "string"},
+                                                       "at": {"type": ["integer", "null"], "default": -1},
+                                                       "layers": {"type": "array", "items": {"type": "integer"}},
+                                                       "k": {"type": "integer", "default": 5},
+                                                       "targets": {"type": "array", "items": {"type": "string"}},
+                                                       "lens": {"type": "string", "enum": ["j", "logit"], "default": "j"},
+                                                       "chat": {"type": "boolean", "default": False}},
+                     "required": ["text"]}},
+    {"name": "jlens_pair", "description": "Kotodama only: a looped core neuron (positions 19-38 = pass 1, 39-58 = pass "
+     "2, the same weights) read through the J-lens at both passes. The write d_n is identical; the downstream map "
+     "differs, so this is what the same write MEANS on pass 1 vs pass 2: the two top-k lists per pole, their overlap, "
+     "the tokens shared, the cosine of the two J-images, and each pass's stab10 (split-half reproducibility; the "
+     "ceiling to read the overlap against). Over all core neurons the p vs p+20 top-10 overlap averages ~0.18 (cosine "
+     "~0.67): most writes are re-read on pass 2. Caveat: pass 1's map includes all of pass 2 downstream (depth "
+     "confound).",
+     "inputSchema": {"type": "object", "properties": {**LN, "k": {"type": "integer", "default": 10}},
+                     "required": ["layer", "n"]}},
     {"name": "camera", "description": "Move the person's 3D view. mode 'home': the whole model. 'layer': look at one "
      "layer's neuron sheet face-on (give layer). 'neuron': fly close to one neuron (give layer and n; closeness 0.1 = very "
      "close, 0.5 = wide).",
@@ -212,6 +240,26 @@ def call(name, a):
         return post("/api/agent/compare", a, timeout=900)
     if name == "activations":
         return post("/api/agent/activations", a, timeout=900)
+    if name == "jlens":
+        body = {**a, "at": a.get("at", -1)}
+        r = post("/api/jlens", body, timeout=900)
+        if not r.get("available", True) or "error" in r:
+            return r
+        lo, hi = r["layers"]
+        cols = r["positions"]
+        out = {"lens": r["lens"], "tokens": r["tokens"], "positions": cols, "layers": [lo, hi]}
+        if len(cols) == 1:   # one column: one row per layer
+            out["by_layer"] = [{"layer": lo + i, "top": r["top"][i][0], "p_top1": r["p_top1"][i][0],
+                                **({"ranks": dict(zip(r["targets"], r["target_ranks"][i][0]))} if r.get("targets") else {})}
+                               for i in range(hi - lo + 1)]
+        else:
+            out["top1"] = {f"L{lo + i}": [row[0] for row in r["top"][i]] for i in range(hi - lo + 1)}
+            if r.get("targets"):
+                out["best_rank"] = {t: min(min(c[j] for c in layer) for layer in r["target_ranks"])
+                                    for j, t in enumerate(r["targets"])}
+        return out
+    if name == "jlens_pair":
+        return get("/api/jlens/pair", layer=a["layer"], n=a["n"], k=a.get("k", 10))
     ui = {"camera": "camera", "annotate_neurons": "annotate", "show_text": "text", "show_search": "search", "open_tab": "tab"}
     if name in ui:
         return post("/api/agent/ui", {"chat": CHAT, "action": ui[name], **a})

@@ -240,6 +240,7 @@ async function runInfer(text, g) {
     if (!r.ready) { $("#run-rows").innerHTML = `<li class="head">${esc(state.statusText || "measuring neuron ranges")}</li>`; return; }
     state.inf = { ...state.inf, text, pos: -1, tokens: r.tokens };
     $("#inf-toks").innerHTML = r.tokens.map((t, i) => `<button data-i="${r.pos[i]}">${esc(t)}</button>`).join("");
+    refreshJGrid();
   }
   await inferView(g);
 }
@@ -272,7 +273,7 @@ $("#inf-toks").addEventListener("click", e => {
   const b = e.target.closest("button"); if (!b) return;
   state.inf.pos = state.inf.pos === +b.dataset.i ? -1 : +b.dataset.i;
   document.querySelectorAll("#inf-toks button").forEach(x => x.classList.toggle("on", +x.dataset.i === state.inf.pos));
-  inferView(); showTokenPaths(state.inf.pos);
+  inferView(); showTokenPaths(state.inf.pos); renderJGrid();
 });
 document.querySelectorAll("#inf-sign button").forEach(b => b.onclick = () => {
   state.inf.sign = b.dataset.s;
@@ -304,6 +305,56 @@ async function inferView(g = qGen) {
   fireResults = { ...r, fires: true, ready: true };
   renderResults(fireResults, $("#run-rows"));
 }
+// ---------- run tab: the J-lens grid for the text (layers x tokens; the state after each position's FFN) ----------
+state.jl = { on: false, lens: "j", key: null, data: null };
+$("#inf-hi").value = arch.n_layers - 1;
+$("#inf-jl").onclick = () => { state.jl.on = !state.jl.on; $("#inf-jl").classList.toggle("on", state.jl.on); refreshJGrid(); };
+let jlGen = 0, jlTimer;
+for (const id of ["#inf-lo", "#inf-hi"]) $(id).addEventListener("input", () => { clearTimeout(jlTimer); jlTimer = setTimeout(refreshJGrid, 400); });
+async function refreshJGrid() {
+  const el = $("#inf-jgrid"), J = state.jl;
+  if (!J.on || !state.inf.text) { el.innerHTML = ""; J.key = null; J.data = null; return; }
+  const lo = Math.max(0, +$("#inf-lo").value || 0), hi = Math.min(+$("#inf-hi").value || arch.n_layers - 1, arch.n_layers - 1);
+  const key = [state.inf.text, lo, hi, J.lens].join("\u0000");
+  if (J.key !== key) {
+    const mine = ++jlGen;
+    el.innerHTML = `<div class="head">J lens…</div>`;
+    let r;
+    try { r = await api("/api/jlens", { text: state.inf.text, layers: [lo, hi], k: 5, lens: J.lens }); }
+    catch (e) { if (mine === jlGen) el.innerHTML = `<div class="head">${esc(e.message)}</div>`; return; }
+    if (mine !== jlGen) return;
+    if (!r.available) { el.innerHTML = `<div class="head">${esc(r.reason || r.error || "J lens unavailable")}</div>`; return; }
+    J.key = key; J.data = r;
+  }
+  renderJGrid();
+}
+function renderJGrid() {
+  const r = state.jl.data, el = $("#inf-jgrid");
+  if (!state.jl.on || !r) return;
+  const [lo, hi] = r.layers, pin = state.inf.pos;
+  const head = `<tr><th></th>${r.tokens.map((t, i) => `<th data-i="${i}" class="${i === pin ? "on" : ""}">${esc(t)}</th>`).join("")}</tr>`;
+  const rows = [];
+  for (let l = lo; l <= hi; l++) {
+    const li = l - lo, art = new Set(r.common?.[li] || []);
+    const pass = isLooped(l) ? (arch.weights_of[l] === l ? " p1" : " p2") : "";
+    rows.push(`<tr class="${pass}"><th title="${pass ? `looped core, pass ${pass === " p1" ? 1 : 2}` : ""}">L${l}</th>${r.top[li].map((ks, i) => {
+      const p = r.p_top1[li][i];
+      return `<td data-i="${i}" class="${i === pin ? "on" : ""}${art.has(ks[0]) ? " art" : ""}" style="--a:${Math.min(1, p * 1.6).toFixed(2)}" title="L${l} · ${esc(r.tokens[i])} → ${esc(ks.join("  "))} · p ${p}${art.has(ks[0]) ? " · layer-wide J direction" : ""}">${esc(ks[0])}</td>`;
+    }).join("")}</tr>`);
+  }
+  el.innerHTML = `<div class="jbar"><span class="lab">${r.lens === "j" ? "J lens" : "logit lens"} · state after each FFN · top 1 (hover: top 5)</span><span class="seg" id="jl-lens"><button data-l="j" class="${r.lens === "j" ? "on" : ""}">J</button><button data-l="logit" class="${r.lens === "logit" ? "on" : ""}">logit</button></span></div>${r.truncated_to ? `<div class="faint">first ${r.truncated_to} tokens</div>` : ""}<div class="jscroll"><table class="jgrid">${head}${rows.join("")}</table></div>`;
+  const on = el.querySelector("th.on"); if (on) on.scrollIntoView({ block: "nearest", inline: "center" });
+}
+$("#inf-jgrid").addEventListener("click", e => {
+  const b = e.target.closest("#jl-lens button");
+  if (b) { state.jl.lens = b.dataset.l; refreshJGrid(); return; }
+  const c = e.target.closest("[data-i]"); if (!c) return;
+  const i = +c.dataset.i, chip = $(`#inf-toks button[data-i="${i}"]`);   // pin the token, as its chip does
+  if (chip) return chip.click();
+  state.inf.pos = state.inf.pos === i ? -1 : i;
+  document.querySelectorAll("#inf-toks button").forEach(x => x.classList.toggle("on", +x.dataset.i === state.inf.pos));
+  inferView(); showTokenPaths(state.inf.pos); renderJGrid();
+});
 function halfToFloat(h) {
   const s = h & 0x8000 ? -1 : 1, e = (h >> 10) & 0x1f, m = h & 0x3ff;
   return e === 0 ? s * m * 2 ** -24 : e === 31 ? (m ? NaN : s * Infinity) : s * (1 + m / 1024) * 2 ** (e - 15);
@@ -315,7 +366,7 @@ async function runLensSearch() {
     // an emptied box clears both: lens hits, and the last run with its token chips, pinned token and token web
     lensResults = null; fireResults = null;
     state.inf = { ...state.inf, text: null, pos: -1, tokens: null };
-    $("#inf-toks").innerHTML = ""; $("#run-rows").innerHTML = "";
+    $("#inf-toks").innerHTML = ""; $("#run-rows").innerHTML = ""; refreshJGrid();
     syncLeftMap(); renderList(); return;
   }
   if (state.qMode === "fires") return runInfer(q, g);
@@ -343,14 +394,27 @@ function webSummaryHTML() {
     <div class="wsum"><div class="lab"><span class="sw down"></span>feeds → pushes away from</div><div class="chips">${chips(w.down.away)}</div></div>`;
 }
 // the open neuron's own lenses (what it writes), above its web (what its cone does)
+// a position whose weights run at more than one position (a looped core layer: pass 1 and pass 2)
+const isLooped = l => !!arch.weights_of && arch.weights_of.filter(w => w === arch.weights_of[l]).length > 1;
+const ART_TITLE = "layer-wide J direction: in the J-lens top-12 of ≥3% of this position's neurons, so weak evidence for this one";
 function lensHTML() {
   const L = state.lens, f = state.focus;
   if (!L || !f || f.kind !== "neuron" || L.layer !== f.layer || L.n !== f.n) return "";
-  const chips = ts => ts.slice(0, 12).map(t => `<span class="chip" data-q="${esc(t.trim() || t)}">${esc(t)}</span>`).join("");
-  const pair = (up, down) => `<div class="lrow"><span class="sgn up">+</span><div class="chips">${chips(up)}</div></div>
-    <div class="lrow"><span class="sgn down">−</span><div class="chips">${chips(down)}</div></div>`;
+  const chips = (ts, art = [], shared = null) => ts.slice(0, 12).map(t => `<span class="chip${art.includes(t) ? " art" : ""}${shared && shared.includes(t) ? " sh" : ""}" data-q="${esc(t.trim() || t)}"${art.includes(t) ? ` title="${ART_TITLE}"` : ""}>${esc(t)}</span>`).join("");
+  const pair = (up, down, art, shU, shD) => `<div class="lrow"><span class="sgn up">+</span><div class="chips">${chips(up, art, shU)}</div></div>
+    <div class="lrow"><span class="sgn down">−</span><div class="chips">${chips(down, art, shD)}</div></div>`;
+  const jl = L.jlens_up ? `<div class="wsum"><div class="lab" title="the write read through the Jacobian lens: what it does to the final output via everything downstream (split-half = top-10 overlap of two independent fits; low = unreliable)">J lens${L.jlens_stab != null ? ` · split-half ${L.jlens_stab}` : ""}</div>${pair(L.jlens_up, L.jlens_down, L.jlens_common || [])}</div>` + jpairHTML(pair) : "";
   return (L.steer_up ? `<div class="wsum"><div class="lab">steer lens · KL ${L.kl_up} / ${L.kl_down}</div>${pair(L.steer_up, L.steer_down)}</div>` : "")
-    + `<div class="wsum"><div class="lab">logit lens</div>${pair(L.up, L.down)}</div>`;
+    + jl + `<div class="wsum"><div class="lab">logit lens</div>${pair(L.up, L.down)}</div>`;
+}
+const specific = P => P.overlap_up_specific !== P.overlap_up || P.overlap_down_specific !== P.overlap_down ? ` (${P.overlap_up_specific} / ${P.overlap_down_specific} specific)` : "";
+// a looped core neuron: the same write read through J on pass 1 (p) and pass 2 (p + 20); shared tokens outlined
+function jpairHTML(pair) {
+  const P = state.jpair, f = state.focus;
+  if (!P || !P.available || !f || P.layer !== f.layer || P.n !== f.n) return "";
+  const side = (s, other) => `<div class="jside${s.layer === f.layer ? " me" : ""}"><div class="lab">L${s.layer} · pass ${s === P.pass1 ? 1 : 2}${s.stab10 != null ? ` · split-half ${s.stab10}` : ""}</div>${pair(s.up, s.down, s.common || [], P.shared_up, P.shared_down)}</div>`;
+  return `<div class="wsum jpair"><div class="lab" title="top-10 overlap of the two passes' J readouts (+ / −) and the cosine of the two J-images of the write; read against split-half (the ceiling); core mean ≈ 0.18; in brackets: counting only tokens that are not layer-wide artifacts">J · pass 1 vs pass 2 · overlap ${P.overlap_up} / ${P.overlap_down}${specific(P)} · cos ${P.cos ?? "—"}</div>
+    <div class="jcols">${side(P.pass1)}${side(P.pass2)}</div></div>`;
 }
 function renderList() {
   $("#net").innerHTML = lensHTML() + webSummaryHTML();
@@ -551,15 +615,30 @@ async function loadLive(layer, n) {
   }, err => { if (isFocus(layer, n, "neuron") && $("#d-con")) $("#d-con").textContent = err.message; });
   if (!lens) return;
   state.lens = { ...lens, layer, n }; renderList();
+  if (lens.jlens_up && isLooped(layer)) {
+    api(`/api/jlens/pair?layer=${layer}&n=${n}`).then(r => {
+      if (!isFocus(layer, n, "neuron") || !r.available) return;
+      state.jpair = { ...r, layer, n }; renderList();
+      if ($("#d-jpair")) $("#d-jpair").innerHTML = jpairDetailHTML(state.jpair);
+    }, () => {});
+  }
   const tok = t => `<span class="tok">${esc(t)}</span>`;
   const steer = lens.steer_up ? `<div class="lab">steer lens</div><div class="lens"><div class="up"><div class="lab">+ push · KL ${lens.kl_up}</div>${lens.steer_up.map(tok).join("")}</div><div class="down"><div class="lab">− push · KL ${lens.kl_down}</div>${lens.steer_down.map(tok).join("")}</div></div><div class="lab" style="margin-top:14px">logit lens</div>` : "";
-  if ($("#d-lens")) $("#d-lens").outerHTML = `${steer}<div class="lens"><div class="up"><div class="lab">+</div>${lens.up.map(tok).join("")}</div><div class="down"><div class="lab">−</div>${lens.down.map(tok).join("")}</div></div>`;
+  const atok = t => `<span class="tok${(lens.jlens_common || []).includes(t) ? " art" : ""}"${(lens.jlens_common || []).includes(t) ? ` title="${ART_TITLE}"` : ""}>${esc(t)}</span>`;
+  const jl = lens.jlens_up ? `<div class="lab" style="margin-top:14px">J lens${lens.jlens_stab != null ? ` · split-half ${lens.jlens_stab}` : ""}</div><div class="lens"><div class="up"><div class="lab">+</div>${lens.jlens_up.map(atok).join("")}</div><div class="down"><div class="lab">−</div>${lens.jlens_down.map(atok).join("")}</div></div><div id="d-jpair"></div>` : "";
+  const llLab = !steer && jl ? `<div class="lab">logit lens</div>` : "";
+  if ($("#d-lens")) $("#d-lens").outerHTML = `${steer}${llLab}<div class="lens"><div class="up"><div class="lab">+</div>${lens.up.map(tok).join("")}</div><div class="down"><div class="lab">−</div>${lens.down.map(tok).join("")}</div></div>${jl}`;
   const words = state.unitMap[layer]?.get(n)?.words || [];
   $("#c-lens").innerHTML = (words.length ? `<div class="words">${esc(words.join("  "))}</div>` : "") +
     (lens.steer_up ? `<div><span class="sgn up">+</span>${esc(lens.steer_up.slice(0, 10).join("  "))}</div><div><span class="sgn down">−</span>${esc(lens.steer_down.slice(0, 10).join("  "))}</div>` : "") +
     `<div class="faintline"><span class="sgn up">+</span>${esc(lens.up.slice(0, 10).join("  "))}</div><div class="faintline"><span class="sgn down">−</span>${esc(lens.down.slice(0, 10).join("  "))}</div>`;
 }
 
+function jpairDetailHTML(P) {
+  const sh = (t, shared) => `<span class="tok${shared.includes(t) ? " sh" : ""}">${esc(t)}</span>`;
+  const col = s => `<div><div class="lab">L${s.layer} · pass ${s === P.pass1 ? 1 : 2}${s.stab10 != null ? ` · split-half ${s.stab10}` : ""}</div><div class="up">${s.up.map(t => sh(t, P.shared_up)).join("")}</div><div class="down">${s.down.map(t => sh(t, P.shared_down)).join("")}</div></div>`;
+  return `<div class="lab" style="margin-top:14px">J · pass 1 vs pass 2 · overlap + ${P.overlap_up} / − ${P.overlap_down}${specific(P)} · cos ${P.cos ?? "—"}</div><div class="lens jpairs">${col(P.pass1)}${col(P.pass2)}</div>`;
+}
 // sign = sign(g * u): the sign of the reading neuron's activation that the writing neuron's direction produces on its
 // own. Reversing the writer reverses g and u together, so the sign holds for either direction of the writer.
 function renderConnections() {

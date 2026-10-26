@@ -43,6 +43,21 @@ Qwen3.5-4B) to this model; where it says less, that method applies.
   units on real prompts. Causal; trust it over the logit lens in early and middle positions. Ranking is by gain, so
   check absolute probabilities with `logprobs` before naming a neuron from a lens pattern.
 - **Logit lens**: W_down's column read through the final norm and the tied embeddings. Weights only; most useful late.
+- **J lens** (`jlens_up` / `jlens_down` in `neuron`; `jlens` on a text; `jlens_pair` for core neurons): the
+  Jacobian lens. J_L is the average Jacobian of the final routed state (before the last norm) with respect to the
+  block running sum `partial` right after position L's FFN, over 100 FineWeb-Edu prompts; a state or a write h reads
+  as softmax(W_U · norm(J_L h)). It asks what the write will do to the output **through everything downstream**,
+  where the logit lens (J = I) assumes a direct path that AttnRes barely uses before the coda. On this model it is
+  stable (split-half cosine 0.98 in the core) and more *specific* than the logit lens about which concept (which
+  language, which partial result), but not better at raw recovery of hidden intermediates; it agrees with the logit
+  lens late. `jlens_stab` is the neuron's split-half top-10 overlap (low = do not lean on it). `jlens_common` lists
+  shown tokens that are layer-wide artifact directions (e.g. the ellipsis family ` ...`, ` […]` at L25 is in the
+  J top-12 of up to 29% of neurons): weak evidence for any one neuron. Use `jlens` with `targets` to ask whether a
+  hidden intermediate is legible at a position, and on which pass.
+- **Pass 1 vs pass 2 through J** (`jlens_pair`): a core neuron's write is the same on both passes, but its J readout
+  is not: over all core neurons the p vs p+20 top-10 overlap averages ~0.18 (cosine ~0.67) against a split-half
+  ceiling of ~0.55, so most writes are re-read on pass 2. Compare the overlap with each pass's `stab10`; caveat: pass
+  1's map contains all of pass 2 downstream, so pass is confounded with depth. Report it in the **Pass 2** line.
 - **Connections / cone**: direct-path weight links, z-scored per position pair. Leads to check, never circuits; the
   cone beyond one hop is a guess. Pass-1 → pass-2 links (a neuron to its own second-pass self) show up here.
 - **Activation range** (`act_max`, `act_min`): over 10k tokens of FineWeb-Edu, position 0 excluded. Raw values.
@@ -60,7 +75,8 @@ Qwen3.5-4B) to this model; where it says less, that method applies.
 6. Close with `logprobs`: with the neuron zeroed or pushed, which next tokens move and by how much. That is the final
    word on what it does.
 7. For a core neuron (positions 19–38 / 39–58), repeat 3 and 6 on its other pass and report whether pass 2 refines,
-   reuses or reverses pass 1.
+   reuses or reverses pass 1. `jlens_pair` first: it says, from weights and the fitted J alone, whether the two passes
+   read its write alike.
 
 ## Binding questions this model is studied for
 

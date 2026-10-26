@@ -327,3 +327,28 @@ tr.con .logit .tok { font-size: 10.5px; }
 .lib-out .lab { margin-top: 6px; font-size: 11px; color: var(--dim); }
 .lib-text { white-space: pre-wrap; font-size: 12px; line-height: 1.4; }
 .lib-text.steered { color: var(--ink); }
+
+/* J lens: layer-wide artifact tokens fade; tokens shared by both passes are outlined */
+.chip.art, .tok.art { opacity: 0.45; }
+.chip.sh, .tok.sh { box-shadow: inset 0 0 0 1px var(--link); }
+.jcols { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 2px; }
+.jside .lab { font-size: 10.5px; }
+.jside.me .lab { color: var(--ink); }
+.jpairs .up, .jpairs .down { margin-bottom: 4px; }
+#inf-jl.on { background: rgba(56, 200, 255, 0.22); color: var(--ink); }
+#inf-jgrid { margin-top: 8px; }
+#inf-jgrid:empty { display: none; }
+#inf-jgrid .jbar { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 4px; }
+#inf-jgrid .jbar .lab { margin: 0; font-size: 11px; color: var(--dim); }
+#inf-jgrid .seg button { padding: 1px 8px; font-size: 11px; }
+#inf-jgrid .jscroll { overflow: auto; max-height: 46vh; border: 1px solid var(--line); border-radius: 4px; }
+.jgrid { border-collapse: collapse; font: 11px var(--mono); }
+.jgrid th, .jgrid td { padding: 1px 4px; white-space: pre; max-width: 7.5em; overflow: hidden; text-overflow: ellipsis; text-align: left; font-weight: normal; }
+.jgrid tr:first-child th { position: sticky; top: 0; background: #0b0d0f; color: var(--dim); z-index: 1; cursor: pointer; }
+.jgrid tr > th:first-child { position: sticky; left: 0; background: #0b0d0f; color: var(--faint); z-index: 2; text-align: right; }
+.jgrid tr:first-child th:first-child { z-index: 3; }
+.jgrid tr.p1 > th:first-child { box-shadow: inset 2px 0 var(--link); }
+.jgrid tr.p2 > th:first-child { box-shadow: inset 2px 0 var(--up); }
+.jgrid td { background: rgba(56, 200, 255, calc(var(--a) * 0.4)); color: var(--ink); cursor: pointer; }
+.jgrid td.art { color: var(--faint); }
+.jgrid .on { outline: 1px solid var(--link); outline-offset: -1px; }

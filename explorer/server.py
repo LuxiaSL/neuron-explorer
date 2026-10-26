@@ -288,6 +288,77 @@ async def lens(layer: int, n: int):
     return await asyncio.to_thread(rt.lens, layer, n, 12)
 
 
+MAX_JLENS_TOKENS = 512  # a full grid is layers x tokens x k strings; one column (`at`) may use the whole text
+
+
+def _jlens_off():
+    if not hasattr(rt, "jlens_grid"):
+        return {"available": False, "reason": f"no J-lens on the {BACKEND} backend"}
+    return None
+
+
+@app.post("/api/jlens")
+async def jlens(req: Request):
+    """The J-lens on a text: for each token position x layer, the top-k tokens of the state there (the block running
+    sum `partial` right after that position's FFN), read as softmax(W_U · norm(J_L h)) through the live model.
+    Body {text, chat?: false, layers?: [lo, hi], k?: 5, at?: int (one column; negative from the end),
+    targets?: [str] (rank of each string's first token at every cell), lens?: "j" | "logit" (J = I, same state)}.
+    Returns {tokens, layers, positions, top[layer][position][k], p_top1[layer][position], target_ranks?}."""
+    b = await req.json()
+    if off := _jlens_off() or _live_off():
+        return off
+    await asyncio.to_thread(rt.ensure_loaded)
+    text = b.get("text") or ""
+    ids = rt.chat_ids(text) if b.get("chat", False) else rt.tok(text).input_ids
+    if not ids:
+        return {"error": "empty text"}
+    at = b.get("at")
+    cap = MAX_INFER_TOKENS if at is not None else MAX_JLENS_TOKENS
+    cut = len(ids) > cap
+    ids = ids[:cap]
+    if at is not None and not -len(ids) <= int(at) < len(ids):
+        return {"error": f"at={at} outside the {len(ids)} tokens"}
+    k = builtins.max(1, builtins.min(int(b.get("k", 5)), 20))
+    tg, tg_names = [], []
+    for t in b.get("targets") or []:
+        tid = rt.tok(t, add_special_tokens=False).input_ids
+        if tid:
+            tg.append(tid[0]); tg_names.append(t)
+    try:
+        out = await asyncio.to_thread(rt.jlens_grid, ids, b.get("layers"), k, b.get("lens", "j"), at, tg)
+    except ValueError as e:
+        return JSONResponse({"error": str(e)}, status_code=400)
+    if not out.get("available"):
+        return out
+    out["tokens"] = [rt.tok.decode([t]) for t in ids]
+    if tg:
+        out["targets"] = tg_names
+    if cut:
+        out["truncated_to"] = cap
+    return out
+
+
+@app.get("/api/jlens/pair")
+async def jlens_pair(layer: int, n: int, k: int = 10, live: bool = False):
+    """A looped core neuron's write read through J at pass 1 (p) and pass 2 (p + 20), side by side, with the top-k
+    overlap per pole, the cosine of the two J-images, and each pass's split-half overlap (the ceiling)."""
+    if off := _jlens_off():
+        return off
+    if live and (off := _live_off()):
+        return off
+    return await asyncio.to_thread(rt.jlens_pair, layer, n, builtins.max(1, builtins.min(k, 12)), live)
+
+
+@app.get("/api/jlens/meta")
+def jlens_meta():
+    """What the J-lens data is (fit, site, aggregation, parity), or available: false."""
+    if off := _jlens_off():
+        return off
+    idx = rt.jlens_index()
+    return {"available": idx is not None, "matrices": os.path.exists(os.path.join(CACHE_DIR, "jlens_J.npy")),
+            **(rt.jlens_meta() or {})}
+
+
 @app.post("/api/reads")
 async def reads(req: Request):
     b = await req.json()
@@ -688,11 +759,20 @@ async def agent_neuron(layer: int, n: int):
            "lens_up": lens["up"], "lens_down": lens["down"],
            "steer_up": lens.get("steer_up"), "steer_down": lens.get("steer_down"),
            "kl_up": lens.get("kl_up"), "kl_down": lens.get("kl_down"),
+           **({"jlens_up": lens["jlens_up"], "jlens_down": lens["jlens_down"], "jlens_stab": lens.get("jlens_stab"),
+               "jlens_common": lens.get("jlens_common")} if "jlens_up" in lens else {}),
            "activation": act_range(layer, n),
            "sweep": {"rank": u.get("rank"), "n_ranked": u.get("n_ranked"), "stats": u.get("stats"),
                      "n_rollouts": len(u.get("rollouts", []))} if "run" in u else None}
     slim = lambda c: {"neuron": f"L{c['layer']} N{c['n']}", "z": c["z"], "sign": c["sign"], "steer_up": c.get("lens"),
                       "steer_down": c.get("lens_neg"), "words": c.get("words") or None, "name": c.get("name") or None}
+    if "jlens_up" in lens:
+        pr = await asyncio.to_thread(rt.jlens_pair, layer, n, 10)
+        if pr.get("available"):
+            out["jlens_passes"] = {"pass1": f"L{pr['p']}", "pass2": f"L{pr['p2']}", "overlap_up": pr["overlap_up"],
+                                   "overlap_down": pr["overlap_down"], "overlap_up_specific": pr["overlap_up_specific"],
+                                   "overlap_down_specific": pr["overlap_down_specific"], "cos": pr["cos"],
+                                   "other_pass_up": pr["pass2" if layer == pr["p"] else "pass1"]["up"]}
     out["writes_into"] = [slim(c) for c in con["down"]]
     out["reads_from"] = [slim(c) for c in con["up"]]
     return out
