@@ -1670,6 +1670,100 @@
    "caveat": "a state neuron, not a decider; it also writes prose off-context. 'The people of…' openers (6/12). The down pole (−) writes argumentative / expository web register, not dialogue Lead spot-check 10-26: a prose-REGISTER switch, not a turn-boundary decider. On fresh dialogue boundaries where the base already narrates as [stage directions], the pair turns it into novel prose; it also turns a recipe into a scene. Gate by position for loom use. Only the pass-2 position (L45/L47) steers; pass 1 is null. CORRECTED 10-27: its \"raises narration at the turn boundary\" evidence (+1.8 log-odds) was a tokenization artifact of the explorer logprobs prefix (two \"\\n\" tokens instead of one \"\\n\\n\"); with natural tokenization it is null at the boundary. It sustains and restyles narration; it does not start it.",
    "jlens": "SUPPORTS: J+ at L47 = ' whispered','Suddenly',' strange',' suddenly',' scarcely',' frant',' hurried',' sighed',' mighty',' wondrous'; J− = scientific citation register (' PMID',' NIST',' PMC',' promoting'); L27 J+ is '\\n',' strange','.', mixed; pass cos 0.676",
    "session": "2026-10-26 narration"
+  },
+  {
+   "id": "N2063",
+   "positions": [
+    34,
+    54
+   ],
+   "pole": "+",
+   "name": "the writer steps forward: commentary in the author's own voice",
+   "confidence": "(?)",
+   "fires_on": "authorial / editorial voice about the text, raw activations (usual max 62.5 at L34 / 44.75 at L54). L34: '[Editor's note: This article was updated…]' 130 at ' updated'; forum 'Edit: fixed the link' 92.5; aside '(I realise I'm wandering off the point here…)' 66 at ' I'; 'Author's note — I wrote this chapter…' 62.5 at ' this'; 'In this post, I'll walk you through…' 51.5; 'This book is divided into three parts…' 39.8; 'And you, dear reader, will have guessed…' 36.8; deixis 25.6. Controls: plain fiction / essay / news 0, dialogue 0.4, code 1.5, letter 10.6. Near 0 on citations (0.7) and footnotes (9.5)",
+   "steer": {
+    "best": "L54 +0.8 (either pass writes the reader fork)",
+    "example": "'The recipe calls for two cups of flour, a pinch of salt and' → '…but I've made an elaborate web explanation here as to why I can't tell you how many of the first three words are used in this. This is also where I am going to use my sugar addiction again…'. Logprob fork '…And you, dear' → ' reader' Δ log-odds +2.91 (L54) / +3.17 (L34) vs random neurons −1.09…+1.66; ' reader' becomes top-1",
+    "pass1_only": "L34 +0.8 alone: reader fork +3.17, editor fork +1.27 (reused on both passes)"
+   },
+   "caveat": "detector and forks agree; free-gen is suggestive only (a random L54 neuron also wrote recipe commentary). Covers subtypes b–e, not citations or footnotes. Also fires on oral address ('I went down to the river… and I'll tell you' 160 at ' tell') and on literal 'the preceding night' (11.8 / 19.1), so part of its deixis response is lexical. 1 prompt per fork, no CIs",
+   "jlens": "SUPPORTS: L54 J+ ' description',' descriptions',' describing',' paragraphs',' chronicle',' mentioning'; L34 J+ ' writing',' readers',' blogging',' Editors',' journal',' writers' (stab 0.9); pass cos 0.748, top-10 overlap 0 / 0.1 (re-read)",
+   "session": "2026-10-28 meta"
+  },
+  {
+   "id": "N2120",
+   "positions": [
+    29,
+    49
+   ],
+   "pole": "+",
+   "name": "the text refers to itself as a page / post, addresses its reader",
+   "confidence": "(?)",
+   "fires_on": "both signs on meta text, quiet on plain text (L29 range −25.9…18.3): footnote 'cited in note 2 above' −40 at ' above'; forum 'Edit: fixed the link' −43.8 at ' link'; 'the following paragraphs discuss' −30.9; 'In this post… If you have questions' −22.9; editor's note +16.5 at ' article' / −15.8; author's note +21 / −18; aside +13.7 at ' wandering'. Plain fiction / essay / news / math / dialogue ≤ 2. Battery 2 (12 meta vs 12 hard controls): 10/12 (L29) and 9/12 (L49) above every control. Also a letter ('Dear Margaret…') +12 and code +8",
+   "steer": {
+    "best": "pass 2 (L49) +0.8; +1.5 for a strong effect",
+    "example": "'The history of the printing press begins in fifteenth-century Germany, where' → ' it is featured in this article. The following information should be read for the benefit of both readers and writers. Use the sidebar to locate this page.' At 1.5: 'this article may be useful. Current and relevant links on this page can be found in the box below…'. Forks: 'And you, dear' → ' reader' +4.34 (KL 1.86); 'In this' → ' post'/' article' +2.95; '[' → 'Editor'/'Note' +1.14; random neurons −1.09…+1.66 / −1.15…−0.02 / 0…+0.52",
+    "pass1_only": "L29 +0.8: reader fork +1.93 (inside random range), see-also −3.24; pass 2 is the writer"
+   },
+   "caveat": "the firing pole is sign-mixed (− on pointing words ' above', ' reader', ' link'; + on naming the document ' article', ' book', ' submission'). The − push writes nothing meta (In this fork −3.99). Writes web-page / forum self-reference more than literary meta. No effect on citations or 'sic'",
+   "jlens": "MIXED: L49 J+ ' news',' blogs',' publication',' posted',' comments',' blog' (stab 0.8); J− 'because',' actually',' basically','instead'; L29 J+ ' Editorial',' Printed',' Gazette',' Journal' (stab 0.2); pass cos 0.634, overlap 0",
+   "session": "2026-10-28 meta"
+  },
+  {
+   "id": "N3292",
+   "positions": [
+    30,
+    50
+   ],
+   "pole": "+",
+   "name": "scholarly apparatus: footnote text → 'See also / see note'",
+   "confidence": "(?)",
+   "fires_on": "footnote text: '⁴ Ibid., 212. See the harbour records cited in note 2 above.' 192 (L30) / 153 (L50) at '.' (usual max 25.1 / 10.75); editor's-note close '.]' 10.1 (L30). Every other text, meta or not (asides, reader address, deixis, web self-reference, code, math, fiction), < 1, except an author's note 2.8",
+   "steer": {
+    "best": "pass 2 (L50) +0.8",
+    "example": "code opening → 'Unless noted otherwise, these two examples are defined using list's for comprehension. … https://en.wikipedia.org/wiki/Java\\_Collections#Note\\_23.'; at 1.5, essay → 'For more see United States. The word \"Printed\" is. See also. For examples of this See note' (degrading). Forks: '(' → see/cf/ibid +1.69 (top-1 becomes 'see'; randoms −0.79…+0.28); '[' → Editor/Note +1.69; 'In this' → post/article +1.66",
+    "pass1_only": "L30 +0.8: editor fork +0.96, see-also +0.47 (weaker, same sign)"
+   },
+   "caveat": "subtype (a) only, plus editor brackets; nothing for asides, reader address or deixis. At 1.5 it degrades into fragments",
+   "jlens": "SUPPORTS: L50 J+ ' ↩',' refer',' interchangeably','Wikipedia','references',' footnote',' cited',' Cf' (stab 0.9); L30 J+ mixed (' gastronomy',' economists',' cited',' ironically'); pass cos 0.673",
+   "session": "2026-10-28 meta"
+  },
+  {
+   "id": "N1877",
+   "positions": [
+    36,
+    56
+   ],
+   "pole": "+",
+   "name": "cross-reference: refer the reader elsewhere ('see …')",
+   "confidence": "(?)",
+   "fires_on": "cross-references: 'For other uses, see Paris (disambiguation).' 1112 (L36) / 300 (L56) at ',' (usual max 72.5 / 37.5); 'see also Lindqvist' −105 / −58 at ' also'; 'records cited in note 2' −158 / −116 at ' cited'; 'If you have questions, leave a comment below' 56 (L36); 'Feel free to skip it' 31. Plain texts about 1, but news 12 at '.' (L56)",
+   "steer": {
+    "best": "pass 2 (L56) +0.8",
+    "example": "recipe → 'For those who are unfamiliar with the concept, you can check out this definitive guide. … you can read about it in the full article.' Fork '(' → see/cf +2.36 (top-1 'see'); see-also +0.50",
+    "pass1_only": "L36 +0.8: every fork within the random range"
+   },
+   "caveat": "partly lexical: at 1.5 it writes 'as you can see… See? See? See?' (visual 'see'); reader fork +1.98 is inside the random range (random L56 N500 +1.66). Both signs fire on apparatus",
+   "jlens": "SUPPORTS (pass 2): L56 J+ ' see',' refer',' consult',' visit',' please',' check' (stab 1.0); L36 J+ ' Cash',' pay',' tax' (unrelated); pass cos 0.645",
+   "session": "2026-10-28 meta"
+  },
+  {
+   "id": "N975",
+   "positions": [
+    29,
+    49
+   ],
+   "pole": "+",
+   "name": "commentary-on-the-text detector (no lever)",
+   "confidence": "(??)",
+   "fires_on": "L29 (usual max 43): editor's note 54; forum 54.5; footnote ' above' 53; deixis 'preceding section … following paragraphs' 44 at ' section'; reader address 40.5 at ' what'; author's note 28.6 at ' chapter'. Plain ≤ 1.4, but code 14, math 12.3. Battery 2: 9/12 (L29), 8/12 (L49) above every control",
+   "steer": {
+    "best": "none clean",
+    "example": "+0.8 is generic; −1.5 writes 'as the mentioned above, … mentioned'; − fork 'As' → noted/described +1.24 (n=1; randoms −1.0…−0.28), but reader −1.45, see-also −1.62"
+   },
+   "caveat": "detector only; the steering pole is opposite to the firing pole and weak",
+   "jlens": "OTHER: L29 J+ ' “[','Histor',' pamph',' Chaucer',' historian'; L49 J+ ' contrasts',' historians',' arguably' (stab 1.0), a historian's-commentary register; J−: L29 ' behaviour',' biological',' animals',' biology'; L49 ' personalized',' certified',' Approved',' safer'",
+   "session": "2026-10-28 meta"
   }
  ],
  "recipes": [
@@ -1873,6 +1967,27 @@
    ],
    "example": "24 loom boundary prompts: 24/24 narration first lines (shared classifier 16/24) vs 4/24 baseline and 3/24 random stack (0/24 by classifier); logprob paired vs random stack +1.82 [1.15, 2.54], 18/20, P(narration openers) .15 → .38. 'Karan took the half-lit hallway, finally reaching his own door, swinging it open before turning the handle and knocking on the wood. He heard footsteps come from the kitchen…' At 0.3: 8/12. Not context-gated: it rewrites speech and non-dialogue text, and 16/24 first lines mention a door",
    "verified": "lead spot-check 10-26 (4 fresh openings, vs a random pair): 3/3 dialogue boundaries go to novel prose (the base and the random pair give bracketed stage directions); a recipe turns into a scene. Works as a register lever; not context-gated."
+  },
+  {
+   "name": "reader address / self-referring page (untested as a stack)",
+   "push": [
+    [
+     "L49 N2120",
+     0.8
+    ]
+   ],
+   "example": "'She opened the door and' → ', as you read, your picture is in the comments. I did not include any other photos. Please do not post this on r/…'; reader fork +4.34. Alternative single: L54 N2063 +0.8 (reader +2.91). A stack of the two at 0.5 was not tested",
+   "verified": "lead spot-check 10-28 (3 fresh openings: a history line, a story line, a recipe; vs random neurons at the same layers and doses): N3292 L30+L50 +0.8 writes citations and references (a 'n. 22' note, a URL, 'the word that can be found in the text is'); N2063 L34+L54 +0.8 writes text-about-the-text ('the one who should have the right to write this story', 'included in the original post'); N2120 L49 +1.0 writes web-page self-reference ('posted in this article. Click here'); the randoms stay plain prose."
+  },
+  {
+   "name": "scholarly apparatus",
+   "push": [
+    [
+     "L50 N3292",
+     0.8
+    ]
+   ],
+   "example": "'(' → 'see' top-1 (+1.69); '[' → 'Editor'/'Note' (+1.69); code → 'Unless noted otherwise… #Note_23'"
   }
  ],
  "imposters": [
@@ -2003,6 +2118,30 @@
   {
    "id": "N772 (L39, +) and N1749 (L19/L39, −)",
    "why": "top decision-point screen hits at the boundary '\\n' (narr state .57 vs speech .33; N1749 on both passes), but their pushes are at random level, and zeroing them leaves the L45 N3727 onset unchanged (−18.9 → −18.9)"
+  },
+  {
+   "id": "N3864 (L47, +) / N3727 (L45, −)",
+   "why": "narration register (known non-target): L47 45.5 on reader-address fiction AND 45.5 on plain fiction at the same '.', L45 −17.9 on both; ≈0 on non-fiction meta"
+  },
+  {
+   "id": "N3752 (L33/L53, −)",
+   "why": "10/12 in battery 2 ('sic', 'essay', 'story', 'tale'), but steering at 0.8 writes nothing meta; J reads reporting verbs ('appeared', 'showed', 'reported')"
+  },
+  {
+   "id": "N4051 (L29/L49, −)",
+   "why": "fires on footnote numbers and 'chapter' / 'preceding' / 'introduction'; steering at 0.8 is null; J+ 'pedagogical', 'tutor', 'semester'"
+  },
+  {
+   "id": "N3710 (L14, +)",
+   "why": "deixis hits ('Table 3 below' 4.4, 'section', 'earlier') but steering is null; J is noise / layer-common British spellings"
+  },
+  {
+   "id": "N2780 (L22/L42, −)",
+   "why": "fires on asides and reader address, but also 5–8× on plain controls"
+  },
+  {
+   "id": "', as the …' opener at dose 1.5",
+   "why": "appears under random L50 N2000 too; a generic high-dose attractor, not a meta insertion"
   }
  ]
 }
