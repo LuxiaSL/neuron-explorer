@@ -332,8 +332,11 @@ async def jlens(req: Request):
         tid = rt.tok(t, add_special_tokens=False).input_ids
         if tid:
             tg.append(tid[0]); tg_names.append(t)
+    lay = b.get("layers")
+    if lay is not None and not (isinstance(lay, list) and len(lay) == 2 and all(isinstance(x, int) for x in lay)):
+        return JSONResponse({"error": "layers is a range [lo, hi] of two integers"}, status_code=400)
     try:
-        out = await asyncio.to_thread(rt.jlens_grid, ids, b.get("layers"), k, b.get("lens", "j"), at, tg)
+        out = await asyncio.to_thread(rt.jlens_grid, ids, lay, k, b.get("lens", "j"), at, tg)
     except ValueError as e:
         return JSONResponse({"error": str(e)}, status_code=400)
     if not out.get("available"):
