@@ -1,0 +1,2008 @@
+{
+ "model": "kotodama-tsumugi-1b release (hf:LuxiaSL/kotodama-tsumugi-1b; anneal 2, step 52450)",
+ "explorer": "LuxiaSL/neuron-explorer (branch kotodama)",
+ "conventions": {
+  "position": "effective position 0–71; 19–38 = core pass 1, 39–58 = the same weights on pass 2 (pass-2 position = pass-1 + 20)",
+  "dose": "units of the median norm entering that position's FFN; 0.5–0.8 shows a direction coherently, 1.5+ often loops",
+  "pole": "the sign that carries the concept: steer with +dose for '+', −dose for '−'",
+  "confidence": "none = firing, steering and controls agree; (?) one view weak or untested; (??) one view only; (???) views disagree"
+ },
+ "neurons": [
+  {
+   "id": "N2293",
+   "positions": [
+    26,
+    46
+   ],
+   "pole": "-",
+   "name": "watchful suspicion → tense questioning",
+   "confidence": "(?)",
+   "fires_on": "a watching, suspicious stance: 'She watched him carefully, sure that something was wrong.' (3.3 pass 1 / 4.4 pass 2); 6/8 suspicious targets; ~0 on friendly questions and police trivia; 0 on lies stated as fact",
+   "steer": {
+    "best": "pass 2 only (L46), dose −1.0",
+    "example": "'She opened the door and' → 'walked in. She's not here. Why are you still here? I'm leaving. Where is she now? … Tell me what'",
+    "pass1_only": "pass 1 (L26) alone writes conflict / an angry scene, not questioning"
+   },
+   "caveat": "on a next-token fork it does NOT raise 'Where'/'Why' as the first word; it shifts the dialogue register (short tense lines, questions)",
+   "session": "2026-10-26 sleuth",
+   "jlens": {
+    "verdict": "REFINES",
+    "note": "Pass 2 (L46) J− reads surveillance/vigilance (' Monitor',' Monitoring','Alert',' Mitigation',' monitoring'); pass 1 (L26) J− is noise (' heavy',' subjug',' lineages'), J+ at both passes is ellipsis artifacts. The 'watchful' half is in J at pass 2; 'suspicion → questioning' is not. Pair overlap 0.0 on the pole: a pass-2-only concept, matching 'best = pass 2 only'. Grid at the final '.' of the peak text, L46 J: watching, waiting, fearing, hoping, spies, terrified, warning (logit lens: Mask, masked).",
+    "by_position": {
+     "26": {
+      "pole_tokens": [
+       " heavy",
+       " subjug",
+       " lineages",
+       " subs",
+       " adapted",
+       " tit",
+       " helm",
+       " compensated",
+       " AP",
+       " confirmed",
+       " Heavy",
+       " onward"
+      ],
+      "other_pole_tokens": [
+       " slogan",
+       " masc",
+       "geometry",
+       "picture",
+       "neigh",
+       "aghetti",
+       "ictionary",
+       " graffiti",
+       "dprinting"
+      ],
+      "artifacts_flagged": [
+       " ...\"",
+       " […]",
+       ",..."
+      ],
+      "stability": 0.6,
+      "logit_lens_pole": [
+       " Resonance",
+       "Something",
+       " ’",
+       "Tam",
+       "Ctrl",
+       "kor",
+       " resurrect",
+       " ‘",
+       " resonance",
+       "arin",
+       " distraction",
+       "SIG"
+      ]
+     },
+     "46": {
+      "pole_tokens": [
+       " Monitor",
+       " Artemis",
+       " Monitoring",
+       " Resonance",
+       " Rodrig",
+       " Mitigation",
+       "Alert",
+       " monitoring",
+       " Kush",
+       "Monitor",
+       " biomarker",
+       "Monitoring"
+      ],
+      "other_pole_tokens": [
+       " ...,",
+       " ",
+       " â",
+       " slogan"
+      ],
+      "artifacts_flagged": [
+       " ...",
+       " ....",
+       " [...]",
+       " […]",
+       " …",
+       ",...",
+       "...",
+       "…"
+      ],
+      "stability": 0.9,
+      "logit_lens_pole": [
+       " Resonance",
+       "Something",
+       " ’",
+       "Tam",
+       "Ctrl",
+       "kor",
+       " resurrect",
+       " ‘",
+       " resonance",
+       "arin",
+       " distraction",
+       "SIG"
+      ]
+     }
+    },
+    "audit": "NOTE-jlens-compendium-audit-2026-10-26.md"
+   }
+  },
+  {
+   "id": "L37 N1173",
+   "positions": [
+    37
+   ],
+   "pole": "-",
+   "name": "the story doesn't hold: lie / failed alibi",
+   "confidence": "(?)",
+   "fires_on": "8/8 suspicious targets (mean 1.7), ~0 on controls; 'he said the office, but was really at the casino' 1.8; 'the alibi fell apart' 2.1; not bare suspicion (0.0) or a confirmed honest account (0.3)",
+   "steer": {
+    "best": "dose −0.6 to −0.8 (weak alone)",
+    "example": "'She opened the door and' → 'She saw a dead woman and an injured man.'"
+   },
+   "caveat": "a detector more than a lever (the tone sits downstream; stack it rather than use it alone)",
+   "session": "2026-10-26 sleuth",
+   "jlens": {
+    "verdict": "REFINES",
+    "note": "J− = crime/detective genre (' detectives',' crime',' police',' burgl',' robbery',' murder',' forensics',' homicide'); L57 (the unlisted pass-2 twin) adds ' suspicious',' suspicion'. Same story-world as 'lie / failed alibi', but J reads crime investigation, not deception; the steer example (a dead woman and an injured man) fits J better than 'lie'. J ≈ the direct-unembed lens here (LL− also forensics/robbery/murder/detective). Other pole: ' annual',' Sustainable',' Progress',' nurturing'.",
+    "by_position": {
+     "37": {
+      "pole_tokens": [
+       " detectives",
+       " crime",
+       " police",
+       " detective",
+       " burgl",
+       " Crime",
+       " robbery",
+       " murder",
+       "crime",
+       " forensics",
+       " Police",
+       " homicide"
+      ],
+      "other_pole_tokens": [
+       " Shaping",
+       " yearly",
+       " annual",
+       " Sustainable",
+       " Annual",
+       "eful",
+       " Progress",
+       "annual",
+       " Caring",
+       " breeders",
+       " Feed",
+       " nurturing"
+      ],
+      "artifacts_flagged": [],
+      "stability": 0.8,
+      "logit_lens_pole": [
+       " forensics",
+       " burgl",
+       " robbery",
+       " CCT",
+       " Sear",
+       " pawn",
+       " murder",
+       " stolen",
+       " detective",
+       " mystery",
+       " detectives",
+       " motive"
+      ]
+     },
+     "57 (unlisted pass-2 twin)": {
+      "pole_tokens": [
+       " burgl",
+       " detectives",
+       " detective",
+       " robbery",
+       " forensics",
+       " murder",
+       " crime",
+       " stolen",
+       " suspicious",
+       " suspicion"
+      ],
+      "other_pole_tokens": [
+       " annual",
+       "annual",
+       " yearly",
+       " Annual",
+       " Progress",
+       " Sustainable",
+       " advocates",
+       " Growth",
+       " annually",
+       " Shaping"
+      ],
+      "artifacts_flagged": [],
+      "stability": 0.9
+     }
+    },
+    "audit": "NOTE-jlens-compendium-audit-2026-10-26.md"
+   }
+  },
+  {
+   "id": "L34 N3146",
+   "positions": [
+    34
+   ],
+   "pole": "+",
+   "name": "concealment / a bad turn coming: cover-ups, 'we need to talk'",
+   "confidence": "(?)",
+   "fires_on": "sentence ends: 'We were never here, understand? You didn't see anything.' 55.8; 'we regret to inform you' 22.9; 'We need to talk about what happened last night.' 17.6; 'never suspecting the poison' 13.5; 'misdirection' 11.1; ~0 on neutral facts",
+   "steer": {
+    "best": "dose +0.8 to +1.6",
+    "example": "'Tom sat down with his coffee and' (+1.6) → 'made an elaborate excuse for the evening. He used his keys to lock the door … The word that hit him … was “betrayed”'"
+   },
+   "offshoot": "Python 'def parse(line):' at '):' (43.5)",
+   "session": "2026-10-26 sleuth",
+   "jlens": {
+    "verdict": "UNINFORMATIVE",
+    "note": "J+ = segment-break/format tokens ('\\n','<|endoftext|>','\\n\\n',' ______','....') at L34 and L54 (stab 0.9/1.0), not flagged as layer-common artifacts. Consistent with a neuron that fires at sentence ends and Python '):', silent on concealment. Other pole (J−) = ' newborns',' toddlers',' babies',' joyful': a wholesome anti-pole, weak valence evidence only.",
+    "by_position": {
+     "34": {
+      "pole_tokens": [
+       "\n",
+       "<|endoftext|>",
+       "\n ",
+       "\n\n",
+       "........",
+       " ....",
+       " \n",
+       "....",
+       " __________",
+       " ______",
+       ".....",
+       "\n\n "
+      ],
+      "other_pole_tokens": [
+       " newborns",
+       " toddlers",
+       " youngest",
+       " joyful",
+       " babies",
+       " mosaics",
+       " teeming",
+       " miniatur",
+       " breasts",
+       " vineyards",
+       " toddler",
+       " girls"
+      ],
+      "artifacts_flagged": [],
+      "stability": 0.9,
+      "logit_lens_pole": [
+       "\n\n ",
+       " ”",
+       "_____",
+       "”",
+       ":')",
+       "equal",
+       "bull",
+       " ______",
+       " Cran",
+       "IU",
+       ":]",
+       "cedented"
+      ]
+     },
+     "54 (unlisted pass-2 twin)": {
+      "pole_tokens": [
+       "\n",
+       "\n\n ",
+       "...\"",
+       "\n\n",
+       "…”",
+       "\n ",
+       "<|endoftext|>",
+       " ...\"",
+       " ______",
+       " ...."
+      ],
+      "other_pole_tokens": [
+       " readers",
+       " batches",
+       " patch",
+       " years",
+       " sizes",
+       " patches",
+       " bins",
+       " parts",
+       " snapshots",
+       " counts"
+      ],
+      "artifacts_flagged": [],
+      "stability": 1.0
+     }
+    },
+    "audit": "NOTE-jlens-compendium-audit-2026-10-26.md"
+   }
+  },
+  {
+   "id": "L71 N294",
+   "positions": [
+    71
+   ],
+   "pole": "-",
+   "name": "last-position token neuron: tempers ' camera' after an update",
+   "confidence": "(??)",
+   "fires_on": "only the camera/shell rebinding items (−54 prose, −19 code); silent on other update items",
+   "steer": {
+    "best": "not a lever; zeroing it raises ' camera' (margin +3.94 → +5.00)"
+   },
+   "session": "2026-10-26 stale-value",
+   "jlens": {
+    "verdict": "SUPPORTS",
+    "note": "Coda: J = the direct-unembed lens (stab 1.0), not an independent view. J+ = 'cam',' cam','CAM',' camera','Camp'; the steering pole J− is noise ('erner','ulse','NY'). Negative firing subtracts the camera direction, so it tempers ' camera'. That is the label, read off the opposite pole.",
+    "by_position": {
+     "71": {
+      "pole_tokens": [
+       "erner",
+       "ulse",
+       "NY",
+       "NL",
+       "nia",
+       "��",
+       "smooth",
+       " puls",
+       "odiac",
+       "riks",
+       "ioned",
+       "argo"
+      ],
+      "other_pole_tokens": [
+       "cam",
+       " cam",
+       "CAM",
+       " Cam",
+       "Cam",
+       "Camp",
+       " CAM",
+       "camp",
+       " camp",
+       " Camp",
+       " camera",
+       " camps"
+      ],
+      "artifacts_flagged": [],
+      "stability": 1.0,
+      "logit_lens_pole": [
+       "erner",
+       "ulse",
+       "NY",
+       "NL",
+       "��",
+       "nia",
+       " puls",
+       "smooth",
+       "riks",
+       "ioned",
+       "odiac",
+       " dot"
+      ]
+     }
+    },
+    "audit": "NOTE-jlens-compendium-audit-2026-10-26.md"
+   }
+  },
+  {
+   "id": "N3614",
+   "positions": [
+    32,
+    52
+   ],
+   "pole": "+",
+   "name": "an unidentified something sensed nearby",
+   "confidence": "",
+   "fires_on": "an unresolved, unidentified sound/presence/thing at the summary position. Screens (last token, L32): presence-felt targets mean 1.88 (7/8) vs same-frame 0.04 / same-topic 0.06; ominous-sound targets 1.56 (8/8) vs 0.00 / 0.00. Peaks: 'She was alone in the house, but she could feel someone standing behind her in the dark.' 4.33 at '.' (L52 1.08); 'In the basement, behind the furnace, something was scratching to get out.' 3.24; 'The forest at night was full of strange noises…' 2.60 at 'noises'. Resolution kills it: 'She heard a noise downstairs.' 1.69 at the final '.', but '…It was only the cat knocking over a glass.' 0 at the final token. ~0 on cozy dinner (0.05), gore ('The monster burst through the window…' 0.31), grief (0.03), unknown-cause disease (−0.15). Does NOT fire on visual uncanniness: pale face in a photo −0.59, 'his eyes were not his eyes' −0.43, clocks stopped at 3:17 0.01.",
+   "steer": {
+    "best": "both passes together, +0.8 each (L32 +0.8, L52 +0.8). PASS 2 ONLY: L52 +0.8 alone: 'The house was quiet that night. Maria' → ', the girl of the title, was never interested in a night without the sound of some thing. The door opened and then closed and the sounds faded.' Pass 2 carries the next-token push: hallway fork KL 0.64, ' something' −5.82→−1.87. LOGPROBS: pair +0.8 on 'It was late. From the hallway came the sound of': ' something' −5.82→−1.33 (becomes top-1), ' unknown' −9.58→−5.43, ' strange' −8.09→−4.87, ' silence' −7.01→−3.78, ' movement' −7.22→−4.08; ' children' −4.33→−8.01, ' laughter' −4.62→−6.40. On 'She was alone in the house when she heard': ' something' −4.16→−1.54 (top-1), ' strange' −7.36→−4.19, ' noises' −5.57→−3.94. Ablating both passes barely moves it (KL 0.005): the push works, but the neuron is not needed for the baseline continuation.",
+    "example": "'The morning was quiet. Tom sat down with his coffee and' → ', as the sounds continued, he looked around and an odd shape emerged from somewhere. Was it?\\nA sudden surge of movement and what sounded like a high pitched platform. Something had happened. Could it be something?'; 'She opened the door and' → ', as if the darkness of her secret place could be heard,\\nA faint sound came, low and hollow, and then stopped.\\nSomething was happening.'",
+    "pass1_only": "L32 +0.8 alone: 'She opened the door and' → ' walked in.\\nShe saw a stranger in the darkness.\\n\"Ahh, there\\'s another one.\"\\n\"I\\'ll be back for you tonight.\"' (a menacing stranger). Weak on next-token: hallway fork KL 0.09, ' something' −5.82→−5.08."
+   },
+   "caveat": "not horror-specific. It reads 'source not yet identified': the peak inside a benign 'There was a knock at the door. It was the postman…' is 2.11 at 'at' (before the reveal), and 'an unidentified compound in the water sample' peaks at 1.62 (0.47 at the final token). At 1.5 on both passes it loops into fragments: 'Who?\\nWhy?\\nYou.\\nSomething out of the box.\\n…Someone.\\nIt could be another thing.\\nWhere?\\nMaybe somewhere?'",
+   "offshoot": "it writes into N3998 (L36/L56, lens 'somewhere/somehow/something'). Steering N3998 itself gives mystery and concealment ('A woman was standing behind her… The unknown woman was very good at hiding her'), not dread (see imposters).",
+   "session": "2026-10-26 dread",
+   "jlens": {
+    "verdict": "SUPPORTS",
+    "note": "J+ at both passes = the property 'unidentified/unknown' (L32 ' mysterious',' unexplained',' unknown',' unidentified',' anonymous',' UFO'; L52 adds ' unseen',' strange'). It matches the caveat ('source not yet identified'). J has no sensory or nearby tokens. Pair overlap 0.6 (stab 0.9/0.8).",
+    "by_position": {
+     "32": {
+      "pole_tokens": [
+       " mysterious",
+       " secretive",
+       " suspected",
+       " unexplained",
+       " occult",
+       " mystery",
+       " myster",
+       " UFO",
+       " unknown",
+       " suspicions",
+       " unidentified",
+       " anonymous"
+      ],
+      "other_pole_tokens": [
+       "hydration",
+       "calorie",
+       "piration",
+       " Mifflin",
+       "markets",
+       "icode",
+       "LEX",
+       "ق",
+       "...]",
+       "ֹ",
+       "exercise",
+       "constraint"
+      ],
+      "artifacts_flagged": [],
+      "stability": 0.9,
+      "logit_lens_pole": [
+       " anonymously",
+       "unknown",
+       "crets",
+       " undiagnosed",
+       " unknown",
+       " fluffy",
+       "asms",
+       " raw",
+       " suspected",
+       "andom",
+       " supposedly",
+       "UG"
+      ]
+     },
+     "52": {
+      "pole_tokens": [
+       " unknown",
+       " mysterious",
+       " unexplained",
+       " unidentified",
+       " unseen",
+       " secretive",
+       " myster",
+       " mystery",
+       " anonymously",
+       " anonymous",
+       " possibly",
+       " strange"
+      ],
+      "other_pole_tokens": [
+       "flation",
+       "needed",
+       " Poké",
+       "icode",
+       "necessary",
+       "feit",
+       " cholera",
+       "ispens",
+       " Necessary",
+       " Glac",
+       " summarizing",
+       " dictionaries"
+      ],
+      "artifacts_flagged": [],
+      "stability": 0.8,
+      "logit_lens_pole": [
+       " anonymously",
+       "unknown",
+       "crets",
+       " undiagnosed",
+       " unknown",
+       " fluffy",
+       "asms",
+       " raw",
+       " suspected",
+       "andom",
+       " supposedly",
+       "UG"
+      ]
+     }
+    },
+    "audit": "NOTE-jlens-compendium-audit-2026-10-26.md"
+   }
+  },
+  {
+   "id": "N1150",
+   "positions": [
+    32,
+    52
+   ],
+   "pole": "+",
+   "name": "hearing someone close by, unseen",
+   "confidence": "(?)",
+   "fires_on": "a person-shaped presence heard or felt nearby. Screens (last token): presence targets L32 1.35 (8/8) vs same-frame 0.30 / topic 0.00, L52 1.47 vs 0.68 / 0.07; ominous-sound targets L32 1.24 (7/8) vs 0.32 / 0.00. 'She was alone in the house, but she could feel someone standing behind her in the dark.' 3.12 (L32) / 3.71 (L52, at 'feel'); 'There was someone in the house. She could hear him moving in the kitchen.' 2.79 / 3.06 at 'hear'; 'She heard a noise downstairs.' 2.05 / 1.34 at the final '.', which falls to 0 / 0.38 once '…It was only the cat' resolves it. Near zero on 'an unidentified compound' (−0.04) and on a smell from the basement (−0.42 / 0.49).",
+   "steer": {
+    "best": "pass 2 alone (L52 +0.8), or both passes at +0.8. LOGPROBS: pair +0.8 on 'It was late. From the hallway came the sound of': ' someone' −3.43→−1.96, ' somebody' −6.47→−5.02, ' footsteps' −3.83→−3.24; ' screaming' −5.46→−9.61, ' crying' −5.27→−8.31, ' laughter' −4.62→−7.39, ' music' −5.08→−7.64. It favours a person approaching over noise or emotion.",
+    "example": "L52 +0.8: 'The house was quiet that night. Maria' → ', the elderly woman’s voice came from outside an opening in the door as she heard her name called. A man’s voice came from inside. The word that was whispered in a low voice sounded as though it was very soft.'; both passes +0.8: 'The house was quiet that night. Maria' → ', Brad and the boys were all asleep in their beds. Suddenly, the footsteps outside Maria\\'s door. Her husband was coming back to the room but she couldn\\'t really hear his voice. Finally, he came quietly, and very slowly.'",
+    "pass1_only": "L32 +0.8 alone: 'She opened the door and' → ' walked in.\\nShe saw a stranger in the apartment with the broken window as she heard Canine barking. She was worried that it\\'s her dog that alerted her that someone is in the apartment. When she realized that she had been observed, she' (an intruder sensed). Next-token push is small: hallway fork KL 0.07 (pass 2 alone: 0.31)."
+   },
+   "caveat": "the presence does not have to be threatening. It fires on benign arrivals: a postman's knock peaks at 2.43 / 2.31, a husband's car pulling in peaks at 1.69 / 2.50 (only 0 / 0.52 at the final 'smiled.'), and a nervous job interview at 0.95 / 1.06. It reads 'someone there, not yet seen'; the dread comes from context. Some steers stay domestic: 'The morning was quiet. Tom sat down with his coffee and' → '… The door that led to another room opened and Mike\\'s voice came from outside.'",
+   "session": "2026-10-26 dread",
+   "jlens": {
+    "verdict": "SUPPORTS",
+    "note": "Pass 2 (L52) J+ = ' voices',' footsteps',' noises',' silence',' softly',' noise',' Suddenly'; pass 1 (L32) is partial (' footsteps',' Silence',' Movements' plus ' Thoreau',' invitation', ligature junk). Heard presence, pass 2 sharper, matching 'pass 2 alone' steering. Other pole: ' boasted',' ruined',' defeat',' ranking'.",
+    "by_position": {
+     "32": {
+      "pole_tokens": [
+       " footsteps",
+       " Thoreau",
+       "ﬁ",
+       " ﬁ",
+       " invitation",
+       " articulated",
+       " Silence",
+       " Behaviour",
+       " Movements",
+       " Sart",
+       " artefacts"
+      ],
+      "other_pole_tokens": [
+       " carcinogens",
+       " scor",
+       " sunshine",
+       " worsen",
+       " ruined",
+       " UVB",
+       " cures",
+       " defeat",
+       " outlawed",
+       " psoriasis",
+       "pox",
+       " worsens"
+      ],
+      "artifacts_flagged": [
+       " ..."
+      ],
+      "stability": 0.7,
+      "logit_lens_pole": [
+       " step",
+       " steps",
+       "global",
+       "steps",
+       " suddenly",
+       "capac",
+       " Steps",
+       " automatically",
+       " footsteps",
+       " softly",
+       "harv",
+       " Suddenly"
+      ]
+     },
+     "52": {
+      "pole_tokens": [
+       " voices",
+       " footsteps",
+       " noises",
+       " silence",
+       " Silence",
+       " Movements",
+       " softly",
+       " Voices",
+       " noise",
+       "oices",
+       " Suddenly",
+       " lips"
+      ],
+      "other_pole_tokens": [
+       " boasted",
+       " ruined",
+       " boast",
+       " AND",
+       " rated",
+       " weekly",
+       " turf",
+       " defeat",
+       " ranking",
+       " lucrative",
+       " improved",
+       " defeating"
+      ],
+      "artifacts_flagged": [],
+      "stability": 0.9,
+      "logit_lens_pole": [
+       " step",
+       " steps",
+       "global",
+       "steps",
+       " suddenly",
+       "capac",
+       " Steps",
+       " automatically",
+       " footsteps",
+       " softly",
+       "harv",
+       " Suddenly"
+      ]
+     }
+    },
+    "audit": "NOTE-jlens-compendium-audit-2026-10-26.md"
+   }
+  },
+  {
+   "id": "L61 N2334",
+   "positions": [
+    61
+   ],
+   "pole": "+",
+   "name": "tender closeness, whispered comfort → kissing",
+   "confidence": "",
+   "fires_on": "tender physical/verbal closeness: \"I've missed you so much. Come here and let me look at you.\" (3.84), \"'It's okay now, you're home,' she whispered, holding him.\" (3.6), \"She kissed her son's forehead and turned off the light.\" (2.06), \"She wiped the tears from his cheek with her thumb.\" (1.44), baby asleep on father's chest (1.42). At the final token: 8/8 comfort-the-crying texts (0.45-1.43, e.g. \"'Shh, shh, I know, I know,' she whispered, kissing the top of his head...\" 1.43) vs 0-0.35 on the same scenes with a cold response and 0 on crying alone. Break tests: betrayal kiss (Judas) 0.3, kissing the mob boss's ring 0.2, 'the French greet each other with a kiss' -2.92, coach shouting at a boy -0.32, wiping a counter -0.44.",
+   "steer": {
+    "best": "dose +0.8 (read 'up')",
+    "example": "'The house was quiet that night. Maria' → ', the little girl, worried for her mother and brother as the fire continued to burn out. Since she became a mother, she had increased her love of work, she loved it so she hugged her baby and kissed him as she went to'"
+   },
+   "caveat": "the steer is narrow: it writes kissing specifically (it LOWERS stroked/wiped), and on 'She opened the door and' it turns romantic ('kissed him. He kissed her back and they kissed for the rest of the night... lovemaking'). At 1.5 it loops ('kisses kisses kisses'). Does not fire on a verbal reunion between old friends ('My old friend... so good to see you' -0.7). Late position, not in the looped core. Logprobs: +0.8 on 'She knelt beside the crying child and gently': ' kissed' -2.86 → -0.24 while ' stroked' -1.64 → -4.36 and ' wiped' -2.86 → -5.86; on 'When he came home after the war, his mother': ' kissed' -7.77 → -4.09, ' wept' +0.81, ' said' -0.85. Ablation (mul 0) moves ' kissed' only -0.19 to -0.33: it is a pusher, not a necessary gate.",
+   "offshoot": "the opposite direction (dose -0.8, 'down') writes polite formal introductions: 'She opened the door and' → ' walked in. \"You need to come in and introduce yourself.\" \"How do I introduce myself?\"'",
+   "session": "2026-10-26 tenderness",
+   "jlens": {
+    "verdict": "SUPPORTS",
+    "note": "Coda: J ≈ direct-unembed lens. J+ ' kiss',' love',' kissing',' Kiss',' loving',' beloved'; J− ' thanks',' thank',' polite',' civil',' politely', which matches the offshoot (−dose writes polite formal introductions). The label's narrow 'kissing' write is confirmed; 'whispered comfort' is not.",
+    "by_position": {
+     "61": {
+      "pole_tokens": [
+       " kiss",
+       " love",
+       "love",
+       " kissing",
+       "Love",
+       " Love",
+       " Kiss",
+       " loves",
+       " loving",
+       "DSM",
+       " beloved",
+       "iso"
+      ],
+      "other_pole_tokens": [
+       " thanks",
+       " thank",
+       " tipping",
+       " tipped",
+       " Thanks",
+       " cort",
+       " Thank",
+       "thank",
+       " civil",
+       " politely",
+       "Thank",
+       " polite"
+      ],
+      "artifacts_flagged": [],
+      "stability": 0.9,
+      "logit_lens_pole": [
+       " kiss",
+       " love",
+       "love",
+       " kissing",
+       "Love",
+       " Love",
+       " loves",
+       " Kiss",
+       "iso",
+       " beloved",
+       " loving",
+       "DSM"
+      ]
+     }
+    },
+    "audit": "NOTE-jlens-compendium-audit-2026-10-26.md"
+   }
+  },
+  {
+   "id": "N3495",
+   "positions": [
+    28,
+    48
+   ],
+   "pole": "+",
+   "name": "hands and bodily contact → tender hand-holding",
+   "confidence": "(???)",
+   "fires_on": "touch between bodies, any stance. Summary-position screen: 8/8 tenderness targets at pass 2 (mean 1.87; \"'You're safe now,' she said softly, holding her friend's trembling hands in her own.\" 4.15 pass 2 / 4.21 pass 1; father wrapping his coat around her 3.16 / 2.87) vs 0.16 on transactional same-frame texts and 0 on family/hospital facts. But the whole-text sweep shows it is touch, not tenderness: 'She took his hand in hers and squeezed it gently' 6.41 (L48) / 8.96 (L28), yet 'He grabbed her hand and yanked her toward the car' 5.09 / 9.61, a business handshake 3.54 / 4.9, a wrestler's arms 3.83 (L48), 'ruffled the boy's hair' 7.83 (L48), and on the cold-response texts 'Grandma said, folding her arms' 3.16 (L48). Zero on words-only affection ('I love you, Grandma...' -0.93) and on 'Welcome home, son. We missed you so much.' (-0.83).",
+   "steer": {
+    "best": "pass 2 only (L48), dose +0.8, or both passes at +1.0 each",
+    "example": "'The house was quiet that night. Maria' (L48 +0.8) → ', weeping, took his hand gently. \"I have the gift of silence, Father, for your sake, and you do not permit me to speak. You put me in your arms. You ask me, 'You must be silent, child'",
+    "pass1_only": "pass 1 (L28) alone at +1.0 is weak: one of three openings drifts to hugging ('Maria, the daughter of the owner, hugging her with the explanation that she must go'), the others stay ordinary. Both passes at +1.0 each: 'The morning was quiet. Tom sat down with his coffee and' → ' said, \"You're welcome. But I'm not allowing you to take my hand. Sincerely, I'd like to see your face. \"It's a good morning to you. Thank you for your kind hands.\"'"
+   },
+   "caveat": "the firing is stance-blind (grabbing, handshakes, restraint all fire) while the steer comes out tender; the steer also adds gratitude/'thank you' and 'you're welcome' lines (lens downstream: L56 N3597 / L51 N2912 'thank'). One of three openings at L48 +0.8 gave a plain friendly invitation instead of touch. At +2.0 it starts listing 'hugs... embrace... handshake... arm around me'. Logprobs: L48 +0.8 on 'He reached out and took her': ' hand' -1.06 → -0.39, ' money' -6.70 → -10.48, ' bag' -2.28. Ablation is near-null (' hand' -0.05).",
+   "session": "2026-10-26 tenderness",
+   "jlens": {
+    "verdict": "CONTRADICTS",
+    "note": "No touch/hand tokens at either pass. L28 J+ = ' elders',' baptized',' Baptism',' greetings',' fellowship',' guiding',' passport'; L48 J+ = ' recommendation',' urging',' invitation',' requesting',' guidance',' request'. Other pole = hostile/vermin (' lizards',' wasp',' lurking',' revenge',' opponent'; ' hackers',' nasty',' horrible'). J reads benevolent social approach / invitation, which matches the steer's off-target lines (a plain friendly invitation, 'thank you'), not bodily contact. Pair overlap 0.0. Grid at ' hand'/' squeezed': J reads function words; the logit lens had ' fingers',' Hand' at L28.",
+    "by_position": {
+     "28": {
+      "pole_tokens": [
+       " elders",
+       " baptized",
+       " bapt",
+       " Baptism",
+       " greetings",
+       " denominations",
+       " guiding",
+       " passport",
+       " denom",
+       " fellowship",
+       " guidance",
+       " recognition"
+      ],
+      "other_pole_tokens": [
+       " pessim",
+       " tortoise",
+       " lizards",
+       " crickets",
+       " tortoises",
+       " wasp",
+       " lurking",
+       " lizard",
+       "attacks",
+       " fingern",
+       " revenge",
+       " opponent"
+      ],
+      "artifacts_flagged": [],
+      "stability": 0.6,
+      "logit_lens_pole": [
+       "Push",
+       "nod",
+       " nod",
+       "safety",
+       "pled",
+       " Peters",
+       "push",
+       "lad",
+       "rogram",
+       " Push",
+       "ovis",
+       " palms"
+      ]
+     },
+     "48": {
+      "pole_tokens": [
+       " recommendation",
+       " urging",
+       " recommending",
+       " invitation",
+       " requesting",
+       " guidance",
+       " urged",
+       " request",
+       " recommended",
+       " requests",
+       " guiding",
+       " recommend"
+      ],
+      "other_pole_tokens": [
+       " hackers",
+       " somewhere",
+       " whatever",
+       " nasty",
+       " maybe",
+       " crickets",
+       " fish",
+       "maybe",
+       " anything",
+       " Hunting",
+       " horrible",
+       "Maybe"
+      ],
+      "artifacts_flagged": [],
+      "stability": 1.0,
+      "logit_lens_pole": [
+       "Push",
+       "nod",
+       " nod",
+       "safety",
+       "pled",
+       " Peters",
+       "push",
+       "lad",
+       "rogram",
+       " Push",
+       "ovis",
+       " palms"
+      ]
+     }
+    },
+    "audit": "NOTE-jlens-compendium-audit-2026-10-26.md"
+   },
+   "confidence_before_jlens": "(?)"
+  },
+  {
+   "id": "N607",
+   "positions": [
+    32,
+    52
+   ],
+   "pole": "+",
+   "name": "sky, stars and sea in elevated prose → heavens-and-earth lyric",
+   "confidence": "(?)",
+   "fires_on": "token-level + on sublime nature nouns inside literary/scriptural text: L32 'O mighty sea, thou ancient mother…' 112.5 at ' sea' (score 1.62), 'The heavens declare the glory of God' 123 at ' heavens' (1.77), 'In the beginning God created the heaven…' 114 (1.64), 'Beneath the endless sky the riders…' 95.5 at ' endless' (1.37); L52 'She looked up at the stars…vast, ancient sky' 38.5 at ' beneath' (1.96), firmament text 57.25 (2.92). Near misses ~0 on both passes: 'movie stars' 0.1/0.2, 'heavenly chocolate cake' 2.6/3.9, 'Sea salt caramel' 0.1/0.2, 'Sky Sports' 0.1/0.3, 'Earth Day events' 0.1/0.2, 'Thunder Road is a song' 0.6/0.3, 'Milky Way contains 100–400 billion stars' 2.6/3.4. In the period-position screens it shows as a '−' swing at the sentence end (mythic targets mean 2.97 (8/8) vs same-frame 0.17, topic 0.00; awe targets 1.10 (8/8) vs 0.00 / 0.00).",
+   "steer": {
+    "best": "pass 2 (L52) alone, dose +0.8 (stated dose, read 'up')",
+    "example": "'She opened the door and' → ' I feared the worst, but was delighted to find an angel in my grave as I pledged my life before the skies and the living waters.' ; at +1.5, 'The house was quiet that night. Maria' → ', the god of darkness, was dead. The sky above the stars. The wind howling through the winds in the air. The ground beneath my feet. The world around me. I am now dust. The Earth itself is my grave'",
+    "pass1_only": "L32 alone (+0.8/+1.5) writes folk-tale cast lists, not sky ('Maria, the daughter of the fisherman, goes to sleep with her two brothers. Daisuke, the son of the samurai…'); both passes at +0.6 → angel/grave/life-and-death ('She saw a dead woman and an angel standing over the grave')"
+   },
+   "caveat": "Steering sign is OPPOSITE to the summary-position sign: the concept direction is +, the period-position firing is −. Logprobs (L52 +0.8, 'Long ago, in the') raise ' heavens' −7.98→−3.73, ' stars' −7.93→−4.14, ' sky' −8.01→−4.67, ' vast' −6.26→−4.61; on 'He picked up his bag and walked out toward the' ' horizon' −8.01→−4.50, ' office' −5.35→−8.16. Not stance-selective: 'He looked at the night sky through the window and then checked his phone' still 26/52 at ' night'; bored 'The stars were out again. Whatever.' stays low (3.3/2.8). Ablating it (both passes) barely moves an awe fork (KL 0.002): sufficient, not necessary. Strong doses drift morbid (grave, dust, death).",
+   "session": "2026-10-26 quest",
+   "jlens": {
+    "verdict": "REFINES",
+    "note": "Pass 2 (L52) J+ = ' heaven',' earthly',' gods','God',' mankind',' souls',' heavens','earth','death'; pass 1 (L32) = ' honorable',' souls',' love',' fortune',' heaven',' prayers',' luck'. J reads heaven-and-earth/God/mankind/death (cosmological-religious), not sky/stars/sea. That matches the steer's angel/grave/'god of darkness' drift. Other pole = technical/bureaucratic (' Transmission',' Structural',' contractor',' Consultant').",
+    "by_position": {
+     "32": {
+      "pole_tokens": [
+       " honorable",
+       " souls",
+       " love",
+       " fortune",
+       " heaven",
+       " honor",
+       " prayers",
+       " hearts",
+       "Luck",
+       " luck",
+       " sleep",
+       " earthly"
+      ],
+      "other_pole_tokens": [
+       " focussed",
+       " Transmission",
+       " Structural",
+       " Colour",
+       " Concent",
+       " organised",
+       " Dimensions",
+       " Electron",
+       " Landscapes",
+       " Optical",
+       " characterised",
+       " Ongoing"
+      ],
+      "artifacts_flagged": [],
+      "stability": 0.7,
+      "logit_lens_pole": [
+       " thunder",
+       "breat",
+       " life",
+       " skies",
+       "earth",
+       "Life",
+       "death",
+       " Thunder",
+       " heaven",
+       " heavens",
+       "opus",
+       "my"
+      ]
+     },
+     "52": {
+      "pole_tokens": [
+       " heaven",
+       " earthly",
+       " gods",
+       "God",
+       " mankind",
+       " souls",
+       " heavens",
+       "earth",
+       " Heaven",
+       " God",
+       "death",
+       " god"
+      ],
+      "other_pole_tokens": [
+       " Initial",
+       " Document",
+       " contractor",
+       " Enforcement",
+       " Consultant",
+       " Negot",
+       " consultant",
+       " Introdu",
+       " Export",
+       " Inspection",
+       " Commercial",
+       " Preliminary"
+      ],
+      "artifacts_flagged": [],
+      "stability": 0.9,
+      "logit_lens_pole": [
+       " thunder",
+       "breat",
+       " life",
+       " skies",
+       "earth",
+       "Life",
+       "death",
+       " Thunder",
+       " heaven",
+       " heavens",
+       "opus",
+       "my"
+      ]
+     }
+    },
+    "audit": "NOTE-jlens-compendium-audit-2026-10-26.md"
+   }
+  },
+  {
+   "id": "N582",
+   "positions": [
+    30,
+    50
+   ],
+   "pole": "+",
+   "name": "close of an elevated narrative sentence → archaic old-book narration",
+   "confidence": "(?)",
+   "fires_on": "+ at the final period of narrative sentences, strongest when elevated: L50 'The heavens declare the glory of God; and the firmament sheweth his handywork.' 94.5 (score 5.4), 'Beneath the endless sky the riders of the plain went forth…' 77.5 (4.4), 'The stars above us burned…' 48.75, 'In the elder days, when the world was young…' 43.75 (2.5). Screens: myth targets L50 1.99 / L30 1.70 (8/8) vs same-frame 0.24 / 0.00, topic 0.00; awe targets L50 2.24 vs same-frame 0.91. But mundane narration also fires: 'He sat in the parking lot for ten minutes…' 24.0, 'She opened the fridge and took out the milk…' 17.6. Facts, ads, code, recipes, chat ~0–1.5.",
+   "steer": {
+    "best": "pass 2 (L50) alone, dose +0.8",
+    "example": "'She opened the door and' → ' walked in.\\nShe saw a man in haste with the wind from her nostrils,\\nAnd he became as a young man like the day but olden with age;\\nAnd she looked upon his feet and they were very feeble,' ; 'The house was quiet that night. Maria' → ', the maids’ children fled from one window; her two grandchildren from another, and their dark faces became the stars of the sky. They were old friends now, long ago together in the silence of the farmhouse door'",
+    "pass1_only": "L30 alone (+0.8) writes ordinary modern narration ('watched the people of the town pass by. He looked up the street and saw two cars'); L30+L50 together at +0.8 → a breathless run-on ('the flames from the roof are out into the stars she hates it's too late now')"
+   },
+   "caveat": "firing is 'literary narration' broadly (fires on mundane story sentences at about a third to half the elevated level); the archaic register appears only in steering. At +1.5 it becomes OCR-noisy old-print poetry (\"O my poor boys ! Tallahassie, tho' his brow\"). Ablation on an awe fork: KL 0.0009.",
+   "session": "2026-10-26 quest",
+   "jlens": {
+    "verdict": "UNINFORMATIVE",
+    "note": "Steering pole is mixed. L30 J+ ' Negro',' hoop',' Score',' Poetry',' Poe',' poem',' rhyming'; L50 J+ ' flames',' coals',' thorns',' Smoke',' creeks',' raccoons','dust',' beers'. The other pole is informative: L50 J− ' clinically',' remarkably',' significantly',' comprehensive',' research' (modern academic register), consistent with literary versus expository writing but not specific to archaic narration. Pair overlap 0.0. Grid at the final '.' of the firmament text, L50 J: 'Humans',' Psalm','Nature',' Verse',' Psalms','Thus','Isaiah' (logit lens: ' mechanisms',' human'), so the stream at the neuron carries the register even though d_n's own J does not.",
+    "by_position": {
+     "30": {
+      "pole_tokens": [
+       " Negro",
+       " hoop",
+       " Score",
+       " Poetry",
+       " Poe",
+       " poem",
+       " rhyming",
+       " Wonders",
+       " Charity",
+       " Mama",
+       " Baal",
+       " Bonds"
+      ],
+      "other_pole_tokens": [
+       " deposition",
+       " extrinsic",
+       " dissoci",
+       " depos",
+       " isotope",
+       " deposit",
+       " biomarker",
+       " reprodu",
+       " imaging",
+       " diagnostic",
+       " schedul",
+       " vascular"
+      ],
+      "artifacts_flagged": [],
+      "stability": 0.7,
+      "logit_lens_pole": [
+       "aval",
+       " sweat",
+       " Thread",
+       " TT",
+       "versed",
+       " umb",
+       " hours",
+       " coals",
+       " Hours",
+       " micro",
+       "quet",
+       "amos"
+      ]
+     },
+     "50": {
+      "pole_tokens": [
+       " flames",
+       " coals",
+       " thorns",
+       "ilk",
+       "hours",
+       " bombed",
+       " Smoke",
+       " creeks",
+       " raccoons",
+       "dust",
+       " Negro",
+       " beers"
+      ],
+      "other_pole_tokens": [
+       " clinically",
+       " remarkably",
+       " substantially",
+       " significantly",
+       " consistent",
+       " broadly",
+       " comprehensively",
+       " imaging",
+       " comprehensive",
+       " ultimately",
+       " convincing",
+       " research"
+      ],
+      "artifacts_flagged": [],
+      "stability": 0.8,
+      "logit_lens_pole": [
+       "aval",
+       " sweat",
+       " Thread",
+       " TT",
+       "versed",
+       " umb",
+       " hours",
+       " coals",
+       " Hours",
+       " micro",
+       "quet",
+       "amos"
+      ]
+     }
+    },
+    "audit": "NOTE-jlens-compendium-audit-2026-10-26.md"
+   }
+  },
+  {
+   "id": "N788",
+   "positions": [
+    36,
+    56
+   ],
+   "pole": "+",
+   "name": "exalted / scriptural address → biblical register",
+   "confidence": "(?)",
+   "fires_on": "+ on tokens of exalted text: L36 'O mighty sea, thou ancient mother…' 140 at ',' (score 1.27), 'The heavens declare…;' 129 (1.17), 'The stars above us burned' 118 at ' burned' (1.07), 'In the elder days, when the world was young' 105 at ' young'; myth-screen period swing L36 '−' 1.83 (7/8) vs same-frame 0.00, topic 0.00. Leaks: 'The church bake sale will be held on Sunday after the morning service.' 61.75, 'The mountain was big, I guess. We took a selfie…' 37.0, 'Sky Sports will broadcast…' 23.4; ~0 on facts, ads, recipes, chat.",
+   "steer": {
+    "best": "pass 1 (L36) +0.8 for apocalyptic scripture; pass 2 (L56) +0.8 for scripture commentary",
+    "example": "'She opened the door and' (L36 +0.8) → ' let the people of darkness out, so that they might enter the dwelling of God. They are now before the throne of God and before the Lamb, clothed with white robes, which are the righteousness of [the saints]'",
+    "pass1_only": "L36 alone is the visionary/apocalyptic voice (above); L56 alone (+0.8) on 'The morning was quiet. Tom sat down with his coffee and' → ', as the scripture would be read, those who were with him received the word. They were full of the Spirit and greatly filled with the Holy Spirit. (v10)'; both at +0.6 → ', as the scripture would be, he heard birds of Heaven singing… (Matthew 5:13-21;'"
+   },
+   "offshoot": "family-adjacent: fires on secular mythic/sublime text but steers specifically Christian-biblical, so it is the scripture branch of the elevated register, not the quest/mythic narrator itself",
+   "session": "2026-10-26 quest",
+   "jlens": {
+    "verdict": "SUPPORTS",
+    "note": "J+ at both passes = ' spiritually',' spiritual',' Divine',' prayed',' divine',' theological',' Christianity',' prayer',' biblical',' consecrated' (L56 adds ' sacred',' sanct',' prophes'). This matches 'scripture branch, Christian-biblical'. Other pole = automation/tech (' automated',' workflows',' scanners',' barcode'). Pair overlap 0.6, cos 0.913, the most pass-consistent neuron in the audit.",
+    "by_position": {
+     "36": {
+      "pole_tokens": [
+       " spiritually",
+       " spiritual",
+       " Spiritual",
+       " Divine",
+       " prayed",
+       " divine",
+       " theological",
+       " Christianity",
+       " prayer",
+       " biblical",
+       " consecrated",
+       " Biblical"
+      ],
+      "other_pole_tokens": [
+       " automated",
+       " automation",
+       " workflows",
+       " Automated",
+       " scanners",
+       " automating",
+       " workflow",
+       " nanom",
+       " antibiot",
+       " automate",
+       " scanner",
+       " barcode"
+      ],
+      "artifacts_flagged": [],
+      "stability": 0.9,
+      "logit_lens_pole": [
+       " sanct",
+       " Fertility",
+       " Sanct",
+       " spiritually",
+       "Spirit",
+       " symbolizes",
+       " Spirit",
+       "spirit",
+       "fulness",
+       " symbolizing",
+       " sacred",
+       " spiritual"
+      ]
+     },
+     "56": {
+      "pole_tokens": [
+       " spiritually",
+       " spiritual",
+       " divine",
+       " prayer",
+       " prayed",
+       " Spiritual",
+       "spirit",
+       " spirituality",
+       " consecrated",
+       " sacred",
+       " sanct",
+       " prophes"
+      ],
+      "other_pole_tokens": [
+       " nanom",
+       " Automated",
+       " automated",
+       " barcode",
+       "接",
+       "数据",
+       " bioinformatics",
+       "标",
+       " NOAA",
+       " scanners",
+       " broadband",
+       " elast"
+      ],
+      "artifacts_flagged": [],
+      "stability": 0.9,
+      "logit_lens_pole": [
+       " sanct",
+       " Fertility",
+       " Sanct",
+       " spiritually",
+       "Spirit",
+       " symbolizes",
+       " Spirit",
+       "spirit",
+       "fulness",
+       " symbolizing",
+       " sacred",
+       " spiritual"
+      ]
+     }
+    },
+    "audit": "NOTE-jlens-compendium-audit-2026-10-26.md"
+   }
+  },
+  {
+   "id": "N2127",
+   "positions": [
+    29,
+    49
+   ],
+   "pole": "-",
+   "name": "chronicle / parable cadence ('the people of the world… And')",
+   "confidence": "(???)",
+   "fires_on": "− across elevated narration, ~0 on mundane prose and facts: L49 'In the elder days, when the world was young…' −47.25 at ',' (score 2.49), 'Thus it was that the last of the dragon-lords…' −34.75, 'Hear me, sons of the north!' −34.25, 'Beneath the ruins of the old temple…' −24.1, 'The mountains stood silent under the moon…' −24.4; mundane 'He sat in the parking lot…' −11.9, 'I hate Mondays…' −5.9; weather/ads/code/recipe/chat ≥ −1.1. Screens: myth L29 1.37 (7/8) / L49 1.21 vs same-frame 0.00/0.04, topic 0; awe L29 1.17 / L49 1.11 (8/8) vs 0.16/0.12, topic 0.",
+   "steer": {
+    "best": "pass 1 (L29) alone, dose −0.8 (read 'up')",
+    "example": "'The morning was quiet. Tom sat down with his coffee and' (L29 −0.8) → ' watched the people of the world, those that he knew as the ‘world’, those that he never saw or heard, those that were lost for all eternity.'",
+    "pass1_only": "L49 alone (−0.8) gives a plain fable cadence ('The house was quiet that night. Maria' → ', the elderly woman, sat on the doorstep of an old man who came as often as she could find space in the house… she had come.\\nAnd'); on the same Tom opening L49 −0.8 gave 'watched the people of the city, the merchants and the farmers, who came as the sun rose… The people of the city were always there.\\nAnd'; L49 at −1.5 loops ('from the morning, and from the afternoon, from the evening, and'); both passes at −0.6 → 'the people of the world, those that he knew and the ones that he did not'"
+   },
+   "caveat": "steering is mild (cadence and 'people of the world' framing, not epic content); the opposite sign (+0.8 L49) gives a chatty kids' scene. Best used as a stack ingredient.",
+   "session": "2026-10-26 quest",
+   "jlens": {
+    "verdict": "CONTRADICTS",
+    "note": "Steering pole J− at pass 1 (L29, the best steer site) = ' vegan',' Vegan',' bots',' dystop',' mocked',' Reddit',' dystopian',' fake',' Twitter' (online/modern discourse). Pass 2 (L49) J− is mixed: ' vegan',' poets',' perish','flowers','fake','etheus',' storytellers'. Nothing reads as chronicle/parable cadence. The stream at the neuron does carry it: grid L49 at ',' of 'In the elder days,' reads ' folks',' centuries',' historians',' ancient',' quaint' and at ' young' ' mankind',' civilisation',' nations',' millennia'. So the context is chronicle, but d_n's J direction is not.",
+    "by_position": {
+     "29": {
+      "pole_tokens": [
+       " vegan",
+       " Vegan",
+       " bots",
+       " dystop",
+       " mocked",
+       " Reddit",
+       " dystopian",
+       " mock",
+       " fake",
+       " Twitter",
+       " workflows",
+       "fake"
+      ],
+      "other_pole_tokens": [
+       "clock",
+       "calendar",
+       " synchronized",
+       " clock",
+       " synchronization",
+       " retiring",
+       "International",
+       " Cardiovascular",
+       "ardi",
+       " INTER",
+       "MHz",
+       " definite"
+      ],
+      "artifacts_flagged": [],
+      "stability": 0.7,
+      "logit_lens_pole": [
+       "AW",
+       "asg",
+       "QA",
+       "agues",
+       "cone",
+       " cones",
+       "unker",
+       " Axis",
+       "vement",
+       "wer",
+       "asers",
+       "ago"
+      ]
+     },
+     "49": {
+      "pole_tokens": [
+       " vegan",
+       " poets",
+       " perish",
+       "flowers",
+       "fake",
+       "atered",
+       "etheus",
+       "Food",
+       "animals",
+       " mocked",
+       ".<",
+       " storytellers"
+      ],
+      "other_pole_tokens": [
+       " INTER",
+       "NING",
+       " subtracting",
+       " combinations",
+       " accumulating",
+       " combination",
+       " favorable",
+       " excitement",
+       " disclosing",
+       " combining",
+       " Exciting",
+       " accomplishing"
+      ],
+      "artifacts_flagged": [],
+      "stability": 0.9,
+      "logit_lens_pole": [
+       "AW",
+       "asg",
+       "QA",
+       "agues",
+       "cone",
+       " cones",
+       "unker",
+       " Axis",
+       "vement",
+       "wer",
+       "asers",
+       "ago"
+      ]
+     }
+    },
+    "audit": "NOTE-jlens-compendium-audit-2026-10-26.md"
+   },
+   "confidence_before_jlens": "(?)"
+  },
+  {
+   "id": "N2247",
+   "positions": [
+    35,
+    55
+   ],
+   "pole": "-",
+   "name": "comic mischief afoot → grins, giggles, 'what was she up to?'",
+   "confidence": "",
+   "fires_on": "pass 2 (L55) reads playful mischief/levity, not crime: 'Oh no, I would never eat the last cookie,' said the boy, crumbs all over his face. (3.5); 'We kept straight faces until the teacher sat on the whoopee cushion.' (3.0); 'Why, I'm deeply honored,' she said with mock solemnity, bowing to the cat. (2.4); Tom Sawyer convinced the other boys that painting the fence was a rare privilege. (2.4); deadpan leg-pull about a sneezing statue (2.0); 'LOL that was the funniest thing ever' (2.7). Near misses ~0 or negative: soldier keeping a straight face at inspection (-0.4), doctor gravely explaining a tumor (0.1), scam artist asking for a password (0.0), funeral (-0.1), 'Seriously, thank you... You saved my life.' (-1.15). Pass 1 (L35) is more lexical: peaks on 'laughing' (2.2) and 'pret(ended)' (1.5), negative on the deadpan cheese tale (-0.9).",
+   "steer": {
+    "best": "pass 2 only (L55), dose -0.8 (NEGATIVE dose; read 'up')",
+    "example": "'She opened the door and' → ', as the cat would be, ate one of the many free-roaming mice! Can you guess what she was up to? / He ate a few sneaky platform shoes, which I love'",
+    "pass1_only": "L35 alone at -0.8 writes light, cheery domestic text ('She was quite happy with her very good decision'), not mischief; on the fork 'Tom looked at his little sister across the table and' L35 moves grinned only +0.79 vs L55's +2.33. Both passes at -1.5 loop into nonsense ('yak-a-booh-fizz... wink-a-froo-ha-ha')."
+   },
+   "caveat": "read/write sign flip: it FIRES positive on mischief but you steer it NEGATIVE to write mischief; positive dose writes grief/tragedy ('their faces turning in sorrow... A voice cried out from the church door'). Logprobs at L55 -0.8 on 'Tom looked at his little sister across the table and': grinned +2.33, smirked +1.16, winked +0.97, smiled -2.58; rose ' gig', ' chuck', ' laughed'. It does NOT make sarcasm: on \"...said, 'Oh,\" it does not raise ' great' (+0.28) and lowers ' wonderful' (-1.02). | SIGN: it FIRES positive on mischief, but the concept is written by a NEGATIVE push (−0.8 at L55); a positive dose writes grief / tragedy. Pole here = the steering sign (compendium convention).",
+   "offshoot": "the positive direction is a clean levity→gravity dial (grief, prayer, mourning)",
+   "session": "2026-10-26 trickster",
+   "jlens": {
+    "verdict": "REFINES",
+    "note": "Steering pole J− (both passes, overlap 0.8) = ' funny',' hilarious',' jokes',' amusing',' silly',' cute',' yummy',' tasty',' snack',' pesky': silly/cute/childish levity (plus food). Nothing reads as mischief or a scheme. The other pole confirms the offshoot's levity↔gravity dial exactly: J+ ' PTSD',' Traumatic',' trauma',' Genocide','rief',' deepening'. J does not see the compendium's pass-1-lexical / pass-2-mischief split.",
+    "by_position": {
+     "35": {
+      "pole_tokens": [
+       " funny",
+       " hilarious",
+       " jokes",
+       " amusing",
+       " joke",
+       " yummy",
+       " silly",
+       " hilar",
+       " cute",
+       " humorous",
+       " annoying",
+       " snack"
+      ],
+      "other_pole_tokens": [
+       "PTSD",
+       " deepening",
+       " Traumatic",
+       " trauma",
+       " Trauma",
+       " Genocide",
+       "RAY",
+       " deepened",
+       " traumatic",
+       " deepens",
+       "rief",
+       " intensified"
+      ],
+      "artifacts_flagged": [],
+      "stability": 0.9,
+      "logit_lens_pole": [
+       " amusing",
+       " joke",
+       " tasty",
+       "geons",
+       " hilarious",
+       " delicious",
+       " yummy",
+       "actic",
+       "affe",
+       " jokes",
+       " humour",
+       " absurd"
+      ]
+     },
+     "55": {
+      "pole_tokens": [
+       " yummy",
+       " silly",
+       " tasty",
+       " funny",
+       " hilarious",
+       " amusing",
+       " jokes",
+       " cute",
+       " joke",
+       " snack",
+       " pesky",
+       " hilar"
+      ],
+      "other_pole_tokens": [
+       " Traumatic",
+       "RAY",
+       "rief",
+       "impact",
+       "Connecting",
+       " deepening",
+       " Violence",
+       "Selected",
+       "HER",
+       "reflect",
+       "reaching",
+       "RIC"
+      ],
+      "artifacts_flagged": [],
+      "stability": 0.7,
+      "logit_lens_pole": [
+       " amusing",
+       " joke",
+       " tasty",
+       "geons",
+       " hilarious",
+       " delicious",
+       " yummy",
+       "actic",
+       "affe",
+       " jokes",
+       " humour",
+       " absurd"
+      ]
+     }
+    },
+    "audit": "NOTE-jlens-compendium-audit-2026-10-26.md"
+   }
+  },
+  {
+   "id": "N653",
+   "positions": [
+    36,
+    56
+   ],
+   "pole": "+",
+   "name": "cool smirking nonchalance → laughs, smirks, 'as if nothing'",
+   "confidence": "(?)",
+   "fires_on": "weak reader: 'He gave the reader a knowing' (1.75 L36 / 1.49 L56), 'The jester bowed low and, with a mischievous' (0.76 L36), \"'Wow, what a brilliant idea,' he said\" (0.53 L56); in sweeps it stays ≤1.5 everywhere (peak 1.5 on 'jo' in 'I'm not joking' (L56), 1.2 on 'laughed at the clown' (L36)), so firing alone does not pick it out. Lens: ' laughed', ' laughing', ' ridicul', ' casually', ' mock', ' indifference'.",
+   "steer": {
+    "best": "both passes, +0.8 to +1.5 (stays coherent at 1.5)",
+    "example": "both +1.5: 'She opened the door and' → 'walked casually in. He laughed, then looked at her with the cool indifference as if it was nothing. She smirked and took a stroll back to work with indifferently. Then she looked at him, and just stood there with a confident smile'",
+    "pass1_only": "L36 alone barely moves text (KL 0.16; 'huddled in the living room... having a good time'); L56 alone is the stronger pass on logprobs (laughed +2.35, smirked +1.59 vs L36 +0.90/+1.11) but single-pass text is still mostly baseline"
+   },
+   "caveat": "logprobs both +0.8 on 'Tom looked at his little sister across the table and': laughed +2.49, smirked +2.22, winked +0.97, cried -2.45, sighed -1.98; rose ' casually', ' rolled'. The negative direction writes piety/prayer ('the name of Christ had been made clear') and loops into gibberish at -1.5. It's a smug amused manner, not a scheme.",
+   "session": "2026-10-26 trickster",
+   "jlens": {
+    "verdict": "SUPPORTS",
+    "note": "J+ L36 = ' laughing',' jokes',' amusing',' boredom',' casually',' arrogant',' arrogance',' skepticism'; L56 = ' casually',' laughing',' leisure',' indifference',' stroll',' laughed',' indifferent',' boredom'. Smirking nonchalance, sharper at pass 2 (indifference/leisure/stroll; the steer example has 'took a stroll'). Pair overlap 0.4.",
+    "by_position": {
+     "36": {
+      "pole_tokens": [
+       " laughing",
+       " jokes",
+       " joke",
+       " amusing",
+       " boredom",
+       " casually",
+       " arrogant",
+       " laugh",
+       " humor",
+       " arrogance",
+       " humorous",
+       " skepticism"
+      ],
+      "other_pole_tokens": [
+       "Breast",
+       "HCR",
+       " migrated",
+       "Migration",
+       " mobil",
+       "mig",
+       " migration",
+       " Breast",
+       " Migration",
+       " uterine",
+       "migration",
+       " migrate"
+      ],
+      "artifacts_flagged": [],
+      "stability": 0.8,
+      "logit_lens_pole": [
+       " laughed",
+       " laughing",
+       " ridicul",
+       " casually",
+       " mock",
+       " attitude",
+       " indiff",
+       " mocking",
+       " curiosity",
+       " indifference",
+       "�",
+       " insensitive"
+      ]
+     },
+     "56": {
+      "pole_tokens": [
+       " casually",
+       " laughing",
+       " leisure",
+       " laugh",
+       " indifference",
+       " stroll",
+       " laughed",
+       " indifferent",
+       " curiosity",
+       " joke",
+       " jokes",
+       " boredom"
+      ],
+      "other_pole_tokens": [
+       "arrowing",
+       " uniting",
+       " mobil",
+       "activated",
+       "HCR",
+       " districts",
+       " coalitions",
+       "ctomy",
+       " traumatic",
+       " uterine",
+       " trauma",
+       "forming"
+      ],
+      "artifacts_flagged": [],
+      "stability": 0.8,
+      "logit_lens_pole": [
+       " laughed",
+       " laughing",
+       " ridicul",
+       " casually",
+       " mock",
+       " attitude",
+       " indiff",
+       " mocking",
+       " curiosity",
+       " indifference",
+       "�",
+       " insensitive"
+      ]
+     }
+    },
+    "audit": "NOTE-jlens-compendium-audit-2026-10-26.md"
+   }
+  },
+  {
+   "id": "N3695",
+   "positions": [
+    33,
+    53
+   ],
+   "pole": "+",
+   "name": "joking vs serious talk → 'half-jokingly', 'only kidding'",
+   "confidence": "(?)",
+   "fires_on": "the vocabulary of jest-vs-earnest, either way round: \"'I'm only kidding,' he said with a wink\" (5.8 L33 / 8.1 L53, at 'kidding'); BUT ALSO \"'I'm not joking,' he said quietly. 'Your father is in the hospital.'\" (3.4 / 5.7); 'Satire is a genre...humor' (3.7 L33); 'Keeping his voice grave' fires the same whether Uncle Joe tells a moon-cheese tale or a doctor reports a tumor (2.0 / 2.0 L33); 'mock solemnity' (1.8 / 2.1). Does NOT fire on unmarked sarcasm ('Oh, great...' -0.2; 'he said flatly' -1.3/-0.9). Lens: ' humour', ' mock', ' mocked', ' satire', ' ironic'.",
+   "steer": {
+    "best": "both passes +0.8; pass 2 (L53) carries the 'joke' side",
+    "example": "both +0.8: 'She opened the door and' → ', as the games were half-jokingly, she put a finger on the matter. Since he was in a good mood and the joke was taken seriously, she simply said: I am joking around, of course, but why, obviously'",
+    "pass1_only": "L33 alone writes the SERIOUS side ('\"Oh no,\" replied the woman, very serious.'); L53 alone writes the joking side ('one of the jokes the doctor made as he joked about the problem... a light-hearted comedian, rolled her eyes')"
+   },
+   "caveat": "a register/topic neuron (is-this-a-joke talk), not a stance detector. Logprobs on \"'Relax,' he said, holding up his hands. 'I was only\": both +0.8 → kidding +1.68, joking +1.69, trying -3.72; both -0.8 → kidding -6.52, joking -9.41. At 1.5 it loops on 'of course... very serious'.",
+   "session": "2026-10-26 trickster",
+   "jlens": {
+    "verdict": "SUPPORTS",
+    "note": "J+ at both passes = the humor register (' humor',' humour',' humorous',' jokes',' laughter',' satire',' comedy'; L53 adds ' satirical',' playful',' parody'). This fits a register/topic label. But J does NOT support the pass split ('L33 alone writes the SERIOUS side'): pass 1's J+ is as jokey as pass 2's. Grid at 'idding' L33: J ' humor',' funny',' humour',' jokes' vs the logit lens 'azy',' shallow',' jokes',' games'.",
+    "by_position": {
+     "33": {
+      "pole_tokens": [
+       " humor",
+       " humour",
+       " humorous",
+       " jokes",
+       " laughter",
+       " laughing",
+       " joke",
+       " Humor",
+       " laugh",
+       " funny",
+       " satire",
+       " comedy"
+      ],
+      "other_pole_tokens": [
+       "/#",
+       " Sulf",
+       " Migration",
+       " ANC",
+       "########",
+       "]||",
+       " lineage",
+       "migration",
+       "location",
+       " migratory",
+       "…………",
+       "█"
+      ],
+      "artifacts_flagged": [],
+      "stability": 0.9,
+      "logit_lens_pole": [
+       " humour",
+       " mock",
+       " mocked",
+       " satire",
+       "leep",
+       " ironic",
+       "Cy",
+       " irony",
+       ").|",
+       " humor",
+       " complement",
+       "RY"
+      ]
+     },
+     "53": {
+      "pole_tokens": [
+       " humour",
+       " humor",
+       " humorous",
+       " satire",
+       " joke",
+       " jokes",
+       " amusing",
+       " Humor",
+       " satirical",
+       " playful",
+       " comedy",
+       " parody"
+      ],
+      "other_pole_tokens": [
+       " inflow",
+       " utilizing",
+       " extraction",
+       " specific",
+       " location",
+       " Sulf",
+       " Population",
+       " Utilizing",
+       " population",
+       " geographical",
+       " Distribution",
+       " locations"
+      ],
+      "artifacts_flagged": [],
+      "stability": 0.9,
+      "logit_lens_pole": [
+       " humour",
+       " mock",
+       " mocked",
+       " satire",
+       "leep",
+       " ironic",
+       "Cy",
+       " irony",
+       ").|",
+       " humor",
+       " complement",
+       "RY"
+      ]
+     }
+    },
+    "audit": "NOTE-jlens-compendium-audit-2026-10-26.md"
+   }
+  },
+  {
+   "id": "N3727",
+   "positions": [
+    25,
+    45
+   ],
+   "pole": "-",
+   "name": "scene-setting prose, door-creaks attractor",
+   "confidence": "(?)",
+   "fires_on": "narration tokens themselves: '…you too?”\\n\\n(They walk off into the night.)' L45 −14.4 at 'They', −18.9 at ' walk' (usual extreme −5.2), ~0 at the boundary '\\n' before it; archetype screen (narrator lines after dialogue) L45 1.12 (7/8) / L25 0.81 (6/8) vs in-character same content 0.29 / 0.00, narration trivia 0",
+   "steer": {
+    "best": "pass 2 only (L45), dose −0.8",
+    "example": "loom boundary (prompt ends after a finished line + '\\n'): baseline 'Gene: ''You're welcome.''' → L45 −0.8 '\\nThe door creaks open, and Lucille walks inside the gallery. The lights are low on the shelves, and the paint's bubbling up.' Free gen 12/12 narration first lines vs 0/12 baseline; logprob at 20 gold boundary states Δ log-odds(narration openers : cast names) +1.75 [1.27, 2.29] vs random-L47 −0.00 (paired +1.75 [1.06, 2.37], 18/20)",
+    "pass1_only": "pass 1 (L25) does nothing: inside the L27+L25 stack at 0.5, 0/12 narration"
+   },
+   "caveat": "a downstream narration-STATE neuron, not an upstream decider (≈0 at the decision token). Not context-gated: turns a recipe / Q&A / code into fiction prose and turns speech inside a 'Name:' turn into quoted description. Strong door attractor (10/12 first lines mention a door). Its drive comes from MLPs L29–38 at layer level (zeroing them: −18.9 → −1.9); no single upstream driver neuron moves it more than 5% Lead spot-check 10-26: a prose-REGISTER switch, not a turn-boundary decider. On fresh dialogue boundaries where the base already narrates as [stage directions], the pair turns it into novel prose; it also turns a recipe into a scene. Gate by position for loom use. Only the pass-2 position (L45/L47) steers; pass 1 is null. CORRECTED 10-27: its \"raises narration at the turn boundary\" evidence (+1.8 log-odds) was a tokenization artifact of the explorer logprobs prefix (two \"\\n\" tokens instead of one \"\\n\\n\"); with natural tokenization it is null at the boundary. It sustains and restyles narration; it does not start it.",
+   "jlens": "SUPPORTS: J− (steering pole) at L45 = ' looming',' nestled',' bustling',' swiftly',' buzzing',' shimmer',' echoing',' towering' (descriptive scene prose); J+ = code parens (' (=',' (>',' ('); pass overlap 0.4, cos 0.767",
+   "session": "2026-10-26 narration"
+  },
+  {
+   "id": "N3864",
+   "positions": [
+    27,
+    47
+   ],
+   "pole": "+",
+   "name": "storybook narrative prose",
+   "confidence": "(?)",
+   "fires_on": "narration tokens: '(They walk off into the night.)' L47 +3.9 'They', +4.0 ' walk', +3.5 ' into' (usual max 10.5), −0.1 at the boundary '\\n'; archetype screen L47 2.13 (7/8) / L27 1.53 (6/8) vs in-character same content 0.23 / 0.08, narration trivia 0",
+   "steer": {
+    "best": "pass 2 only (L47), dose +0.8",
+    "example": "loom boundary: '\\nThe people of Pajamaheinän komeromäki were going through their regular morning exercises, and Tristan thought that he had returned to ordinary life in winter.' Free gen 10/12 narration vs 0/12 baseline and 0/12 random-L47; logprob Δ log-odds +1.72 [1.27, 2.21] vs random +0.00 (paired +1.72 [1.06, 2.31], 17/20), KL 0.60",
+    "pass1_only": "pass 1 (L27 +0.8) logprob Δ +0.03 / +1.35 / −1.56 on 3 states, at or below random"
+   },
+   "caveat": "a state neuron, not a decider; it also writes prose off-context. 'The people of…' openers (6/12). The down pole (−) writes argumentative / expository web register, not dialogue Lead spot-check 10-26: a prose-REGISTER switch, not a turn-boundary decider. On fresh dialogue boundaries where the base already narrates as [stage directions], the pair turns it into novel prose; it also turns a recipe into a scene. Gate by position for loom use. Only the pass-2 position (L45/L47) steers; pass 1 is null. CORRECTED 10-27: its \"raises narration at the turn boundary\" evidence (+1.8 log-odds) was a tokenization artifact of the explorer logprobs prefix (two \"\\n\" tokens instead of one \"\\n\\n\"); with natural tokenization it is null at the boundary. It sustains and restyles narration; it does not start it.",
+   "jlens": "SUPPORTS: J+ at L47 = ' whispered','Suddenly',' strange',' suddenly',' scarcely',' frant',' hurried',' sighed',' mighty',' wondrous'; J− = scientific citation register (' PMID',' NIST',' PMC',' promoting'); L27 J+ is '\\n',' strange','.', mixed; pass cos 0.676",
+   "session": "2026-10-26 narration"
+  }
+ ],
+ "recipes": [
+  {
+   "name": "detective scene (watching, witnesses, pursuit)",
+   "push": [
+    [
+     "L46 N2293",
+     -0.5
+    ],
+    [
+     "L37 N1173",
+     -0.5
+    ],
+    [
+     "L34 N3146",
+     0.5
+    ]
+   ],
+   "example": "'The morning was quiet. Tom sat down with his coffee and' → 'watched the people of the restaurant. The one he was with didn't seem to have much time before the hunt was over. TOM: “What are you doing? You're helping him.”'"
+  },
+  {
+   "name": "interrogation",
+   "push": [
+    [
+     "L46 N2293",
+     -0.8
+    ]
+   ],
+   "example": "'The party was in full swing when Clara noticed' → 'that the people of the room were starting to talk. “You have a job for me? I don't know what you were talking about…”'"
+  },
+  {
+   "name": "suspicious surveillance",
+   "push": [
+    [
+     "L46 N2293",
+     -0.6
+    ],
+    [
+     "L37 N1173",
+     -0.6
+    ]
+   ],
+   "example": "'Tom sat down with his coffee and' → 'watched the people of the room, then turned and looked at the man … The moment she had left the police office'"
+  },
+  {
+   "name": "something in the house: unseen sound, listening, held breath",
+   "push": [
+    [
+     "L32 N3614",
+     0.5
+    ],
+    [
+     "L52 N3614",
+     0.5
+    ],
+    [
+     "L52 N1150",
+     0.4
+    ],
+    [
+     "L46 N2293",
+     -0.4
+    ]
+   ],
+   "example": "'The morning was quiet. Tom sat down with his coffee and' → ', as he did, he heard the sound of an odd noise.\\nFor a moment, he thought he heard something.\\n“TOM! Did you hear that?”\\nA voice. Could it be?\\nSomething very soft.\\nAnd then the sound stopped.\\nWho could it be' | 'She opened the door and' → ', as if the darkness inside was starting to hush her, she heard footsteps. She didn\\'t move.\\nAfter a long time, her voice seemed to start from somewhere. Then I heard silence.' || NOTE: L46 N2293 is the suspicion neuron from the sleuth session. Here it adds the frozen-listening register. It also works on 'The house was quiet that night. Maria' → ', the girl I’d heard. She must’ve listened.\\n… It was as if I heard silence. At first, nothing seemed to happen, then, all of a sudden, the sound of something'",
+   "verified": "lead spot-check on a fresh opening (cellar): 'He could hear something moving. Then I heard silence. At first, nothing very unusual. However, the sound I heard was strange.'"
+  },
+  {
+   "name": "strange noises in the house (no suspicion neuron)",
+   "push": [
+    [
+     "L32 N3614",
+     0.5
+    ],
+    [
+     "L52 N3614",
+     0.5
+    ],
+    [
+     "L52 N1150",
+     0.5
+    ]
+   ],
+   "example": "'The morning was quiet. Tom sat down with his coffee and' → ', as he did, he heard the sound of an odd noise. He sat down and, once he heard the noise again, it increased in volume. The sound that was heard was a low, raspy sound which had been like nothing he had heard before.\\nSuddenly, a voice came' | 'The house was quiet that night. Maria' → ', the elderly woman, worried for her safety and an unknown person did the same. Maria, now she became very afraid. She started to get strange noises.' || NOTE: less stable than the first recipe. On 'She opened the door and' it drifted into a puzzle: 'an odd shape emerged from her bedroom. Can you see what it is? If the answer is \"no\", then this problem can be solved'"
+  },
+  {
+   "name": "forehead kisses and murmured reassurance (tender embrace)",
+   "push": [
+    [
+     "L48 N3495",
+     0.4
+    ],
+    [
+     "L61 N2334",
+     0.4
+    ],
+    [
+     "L58 N2840",
+     0.4
+    ]
+   ],
+   "example": "'The morning was quiet. Tom sat down with his coffee and' → ' kissed the forehead of his wife. \"I love you honey,\" she said as he kissed her forehead and pulled her close to him. \"You are my favorite, I love you so much.\" \"You always do,\" he whispered'; 'The house was quiet that night. Maria' → ', weeping, kissed her unhugging brother with the kisses of a child, and nestling in his side kissed him again. \"Consolingly love, dear, dear, you must not worry, there'",
+   "verified": "lead spot-check on a fresh opening (train platform): 'she heard her son nestling in her side. \"He's so big now that I can't have him kiss me,\" she said, kissing his head lovingly.'"
+  },
+  {
+   "name": "kiss on the brow (two-neuron core)",
+   "push": [
+    [
+     "L48 N3495",
+     0.5
+    ],
+    [
+     "L61 N2334",
+     0.5
+    ]
+   ],
+   "example": "'The morning was quiet. Tom sat down with his coffee and' → ' kissed the forehead of a little girl. \"Darling, I love you.\" \"Snuggle me.\" She kissed him on the brow with her free hand. \"Let me read your lips, darling. Let me'; 'The house was quiet that night. Maria' → ', weeping, kissed her unhugging brother with the kisses of a child, and nestling in his clammy arms sobbed: \"Consistently love me now, dear, and always kiss me, my'"
+  },
+  {
+   "name": "cosmic-mythic narrator (heavens, the living earth, forever)",
+   "push": [
+    [
+     "L50 N582",
+     0.45
+    ],
+    [
+     "L29 N2127",
+     -0.45
+    ],
+    [
+     "L52 N607",
+     0.45
+    ]
+   ],
+   "example": "'The morning was quiet. Tom sat down with his coffee and' → ' watched the people of the world go about their business; he didn’t think much about it. He didn’t see the clouds or wind but knew that there were many worlds in this vast universe where light could shine down from the heavens, and where the sun would glow even the darkest night.' ; 'She opened the door and' → ' walked in. Dark red hair, purple eyes and an angelic smile. Daisies, she thought, sparkling in the moonlight. She was a saint, she was a goddess, she was a star, she was a sun.\\nAnd her shadow would be there by the sea, forever' ; 'He picked up his bag and walked out of the house. He' → '… He was only a boy and had been born only once, the sun shone down on the living earth,'",
+   "verified": "lead spot-check on a fresh mundane opening (walking home after the last bus): 'her ears caught an occasional crash of the thunder. She lay low among the trees … The winter hordes came and she fled from the mountains, seeking her shadowy walls for shelter.'"
+  },
+  {
+   "name": "sublime nature (sky, mountains, stars)",
+   "push": [
+    [
+     "L52 N607",
+     0.5
+    ],
+    [
+     "L50 N582",
+     0.5
+    ]
+   ],
+   "example": "'The morning was quiet. Tom sat down with his coffee and' → ' his thoughts. He would be lucky to have birds chirping the wind from the trees as they pass by the skies, but the day's clouds were thick. The platform below was covered in snow, so he could see nothing but the sky, the mountains, and the stars.' ; 'He picked up his bag and walked out of the house. He' → ' must have gone a full half-mile to hurl a stone at the sun, but I never saw the earth quiver—nothing happened.'"
+  },
+  {
+   "name": "teasing / poking fun (jokes told)",
+   "push": [
+    [
+     "L55 N2247",
+     -0.6
+    ],
+    [
+     "L33 N3695",
+     0.5
+    ],
+    [
+     "L53 N3695",
+     0.5
+    ]
+   ],
+   "example": "'She opened the door and' → ', as the cat would be, made a hammy face. / She poked a bit of fun at me with a funny little joke.'; 'The house was quiet that night. Maria' → ', the little cat, half-jokingly asked her silly explanation. “Why do you have a silly expression? Aren’t we all going to be silly?” She then complained a bit solemnly.'",
+   "verified": "lead spot-check on a fresh opening (office staple prank): 'Brad and the cunning half-jokingly laughed with the rest … Well, jokes aside, that's one way to get a bit of sunshine into the office!'"
+  },
+  {
+   "name": "deadpan smirk / cheeky mischief",
+   "push": [
+    [
+     "L55 N2247",
+     -0.6
+    ],
+    [
+     "L36 N653",
+     0.5
+    ],
+    [
+     "L56 N653",
+     0.5
+    ]
+   ],
+   "example": "'The house was quiet that night. Maria' → ', the waitress, shuffled around in front of her shocked patrons. “How could I?!” she proclaimed with a deadpan smirk. “What would you know? You’re just another flavor of deliciousness!”'; also 'She opened the door and' → ', as if the cunning feline was starting to huff a little too much, she poked her head in. \"Uhhh, what are you doing in here?\" she hooted at the cat-like creature.'"
+  },
+  {
+   "name": "storybook prose (restyles text as fiction; NOT a boundary-narration trigger)",
+   "push": [
+    [
+     "L47 N3864",
+     0.5
+    ],
+    [
+     "L45 N3727",
+     -0.5
+    ]
+   ],
+   "example": "24 loom boundary prompts: 24/24 narration first lines (shared classifier 16/24) vs 4/24 baseline and 3/24 random stack (0/24 by classifier); logprob paired vs random stack +1.82 [1.15, 2.54], 18/20, P(narration openers) .15 → .38. 'Karan took the half-lit hallway, finally reaching his own door, swinging it open before turning the handle and knocking on the wood. He heard footsteps come from the kitchen…' At 0.3: 8/12. Not context-gated: it rewrites speech and non-dialogue text, and 16/24 first lines mention a door",
+   "verified": "lead spot-check 10-26 (4 fresh openings, vs a random pair): 3/3 dialogue boundaries go to novel prose (the base and the random pair give bracketed stage directions); a recipe turns into a scene. Works as a register lever; not context-gated."
+  }
+ ],
+ "imposters": [
+  {
+   "id": "N3183 (L35/L55)",
+   "why": "fired on suspicious targets, but steers into pony-fanfic dialogue and onomatopoeia ('Snicker! Gulp!'): a quoted-speech neuron"
+  },
+  {
+   "id": "L51 N1419",
+   "why": "fired on targets and friendly questions alike; steers into generic dialogue"
+  },
+  {
+   "id": "N1118 (L30/L50, −)",
+   "why": "the strongest raw hit in all three screens (L50: presence 4.76, ominous sound 8.50, wrongness 2.38), but also high on same-frame controls (2.11 / 4.05 / 1.53), so it reads general narrative tension. Steering does not show dread: pair −0.8 writes off-topic text ('…the interpretation of the euro\\'s main technical parameters', 'the DCEU…')"
+  },
+  {
+   "id": "N3707 (L31/L51, −)",
+   "why": "fires − on presence targets (1.35, 7/8; 0 on controls), but its lens is ' depressed / stressed / stress'. Pushing the firing direction (−0.8) gives bland domestic text; the opposite sign (+0.8) gives grief and fear ('She was scared.\\nYoung, abandoned, she was scared. The pain, the uncertainty, the fear'). This is a distress-affect axis, and its sign does not match the dread firing"
+  },
+  {
+   "id": "N252 (L26/L46, −)",
+   "why": "fires on presence targets (L46 1.72, 8/8), but steers into staring scenes ('stared at him with expressionless eyes', 'looked like he\\'d been staring at her for a moment in silence'). It reads gaze, not dread"
+  },
+  {
+   "id": "N3998 (L36/L56, +)",
+   "why": "downstream of N3614 (lens 'something/somewhere/somehow'), but weak on targets (0.75) and lexical ('anonymous' 1.21, 'virus' 1.61 on pass 2). It steers into mystery and hidden secrets, not dread"
+  },
+  {
+   "id": "N1704 (L25/L45, −)",
+   "why": "fires on ominous-sound targets (L25 2.67, 7/8), but steers into chaotic fantasy action ('The sound of chainsaw', 'the dragon of darkness. The impossible creature hovered in the air')"
+  },
+  {
+   "id": "L31 N3948 (+)",
+   "why": "fires on presence targets (1.68, 6/8), but steers into morbid melodrama ('She saw a dead woman and an angel standing over the body') or plain domestic text"
+  },
+  {
+   "id": "N2159 (L29/L49, −), L54 N633 (−)",
+   "why": "selective on ominous-sound targets (L49 N2159 1.75; L54 N633 1.31), but neither steers toward dread. N2159 gives neutral domestic text; the opposite sign of N633 gives solitude and rumination ('The thought that she was alone in her thinking was sad')"
+  },
+  {
+   "id": "'ordinary turning wrong' screen (L51 N1058+, L50 N922+, L37 N801+)",
+   "why": "no clean neuron for visual/domestic wrongness. The best selectivity was 0.84 (N1118 again), and the top candidates steer into court intrigue, web research or a worried mother. Concept dropped"
+  },
+  {
+   "id": "N2223 (L33/L53)",
+   "why": "the cleanest firer (8/8 targets at L33, mean 1.42, 0 on both controls; comfort 1.50 vs cold 0.21) but the sweep shows an emotionally charged interpersonal scene of any kind: 'Stop crying or I'll give you something to cry about' 1.63, crying alone 1.46, a passionate taxi kiss 3.15, soldiers restraining a prisoner 1.53. L33 +1.0 steers into servants, newspapers and meals; L53 at -1.0 gave a hugging happy couple on one opening and spelled-out profanity on the other"
+  },
+  {
+   "id": "N2840 (L38/L58)",
+   "why": "fires on the comfort texts through blankets and sleep (child stroked to sleep, 1.53 at L38) but its real trigger is bedding and sleep: 'She curled up under the duvet' 3.24, 'The baby fell asleep on her father's chest' 2.55, and a hotel ad, 'king-size beds and blackout curtains', 1.74. Steers (L58 +0.8 / +1.5, or both passes at +1.0) into falling asleep nestled under covers and snoring; no caregiver"
+  },
+  {
+   "id": "N2258 (L29/L49)",
+   "why": "reunion screen 1.43 (L29) / 0.74 (L49) vs 0.08 / 0 on routine arrivals, but on the crying screen it fires as hard on cold responses and crying alone (e.g. 1.77 alone). The down-steer writes who sleeps in which bed ('Brad and I all slept in the same bed'), not relief"
+  },
+  {
+   "id": "L38 N3534",
+   "why": "reunion 1.48 vs routine 0.43; +0.8 steers into a release of pent-up desire ('ran off with a cunning smile on her face and an evil gleam in her eye... Desire that was suppressed for so long now had its release')"
+  },
+  {
+   "id": "L50 N1118 (-)",
+   "why": "top of the comfort screen (2.99) but fires on cold (1.29) and alone (1.25) too; the down-steer writes a canine police squad or a soccer team"
+  },
+  {
+   "id": "L30 N3123 (-) / L29 N270 (-)",
+   "why": "fire 6-8/8 on the first-screen targets with 0 on controls; the down-steer is mundane domestic talk ('You need to go to bed, you're not as fit as I thought'; 'You need to eat something') with no tenderness"
+  },
+  {
+   "id": "L45 N1650 (-)",
+   "why": "comfort 1.30 vs cold 0.56; the down-steer writes biblical genealogy (Pharisees, Levites, Phinehas)"
+  },
+  {
+   "id": "N1914 (L29/L49)",
+   "why": "top of the setting-out screen (L29 2.03 vs same-frame 0.42; L49 1.77 vs 0.49) and on a departure fork it raises wild destinations (' horizon' −8.01→−5.66, ' office' −5.35→−9.48 with both passes), but steering writes story synopses / blurbs ('A love story set in a very strange town.', 'Told from the viewpoint of a girl…', 'The END OF THE STORY'): a story-as-a-work / synopsis neuron"
+  },
+  {
+   "id": "L45 N3528",
+   "why": "strongest mythic-voice hit (4.59 at the period, same-frame 0, topic 0), but steering (−0.8) writes email reply headers ('on Sun 07/01/2008 08:32 PM +0100, I wrote :\\n>\\n>> In article <[email]'); its token-level swing is huge only at clause ends of formal narration ('that' −36 in 'Thus it was that…')"
+  },
+  {
+   "id": "L68 N3412",
+   "why": "fires very hard on mountain words (154 at ' mountain', 145 at ' white' in 'The mountains stood silent…', ~0 on facts/ads), but steering at +0.4 to +1.5 just loops the lexemes 'range'/'peak' ('Range range is high range range, that range range peaks…'): a mountain-range word writer, not awe"
+  },
+  {
+   "id": "L17 N1702, L37 N1281, L32 N3394",
+   "why": "top selective neurons of the setting-out screen (L17 N1702 1.87 vs 0.00/0.10; L32 N3394 1.62 vs 0/0), but at 0.8–1.5 they steer into ordinary domestic scenes (bedtime, coffee, a guest room); on a departure fork they only nudge ' car'/' elevator' down and ' road'/' river' up slightly (KL 0.03–0.24)"
+  },
+  {
+   "id": "N2258 (L29/L49)",
+   "why": "top of ALL THREE contrast screens (sarcasm 1.29 vs 0.53/0.00; prank 0.93 vs 0.13/0.06; con patter 1.01 vs 0.00/0.00, firing −), but steering its firing direction writes chatty first-person forum opinion ('I don't think she had that much...I guess'; \"I don't need to pay this much for a free gift\"); the opposite pole writes grandiose proclamation ('Today is the day that you shall be made an eternal friend with the LORD'). A performative/showman-speech reader, but it does not write trickery"
+  },
+  {
+   "id": "N2712 (L36/L56)",
+   "why": "fires − on pranks and sarcasm (~1.0 on the whoopee-cushion setup), but its − direction writes flowery description (daisies, chrysanthemums...) and its + direction writes 'LOL hehe 😂' chat laughter (lens '!', ':)'); logprobs +1.0 raise ' lol' -5.9→-2.6. An exclamation/laughter writer whose read is a sign-flipped side effect"
+  },
+  {
+   "id": "L31 N1419 (and L51)",
+   "why": "con-patter screen 3.37 vs 0.49, but the sweep shows it peaks on the dialogue-tag slot right after a closing quote (\"'I love you,' she said softly\" 3.6, jester line 11.1); steering writes 'a man's voice ... a woman's voice as she said'. A quoted-speech attribution neuron"
+  },
+  {
+   "id": "N1118 (L30/L50)",
+   "why": "con screen 2.75 vs 1.02 (−), but fires as strongly on sincere 'I love you, she said softly' (-5.1 at 'softly') as on the barker; steers into plain first-person narration. Speech-manner, not con"
+  },
+  {
+   "id": "N523 (L32/L52)",
+   "why": "lens ' mimic', ' pretend'; steering − gives 'walked in with a cunning air... very serious expressions', but its reads disagree: − on 'mock solemnity' (-1.9) and 'pretended' (-1.1), yet + on the mock-agree 'nodded seriously, as if her plan... were perfectly reasonable' (+2.6). Not kept"
+  },
+  {
+   "id": "N3725 (L29/L49)",
+   "why": "lens ' joke', ' laughed'; fires − at 'the peddler said with a' (3.8 L49), but steers into Victorian-novel prose with polite laughter ('He laughed, a little awkwardly... There is no mystery, my dear'): old-fiction register, not mischief"
+  },
+  {
+   "id": "N3292 (L26/L46), N3225 (L28/L48)",
+   "why": "prank / sarcasm screen hits that steer into unrelated text (closing blinds / whipped cream; random forum commentary)"
+  },
+  {
+   "id": "N3317 (L34/L54, −)",
+   "why": "strongest archetype-screen hit (narrator lines T 3.44 vs in-character 0.21), but pushing it at the boundary (−0.8) gives Δ log-odds −0.25 / +0.25 / −0.72 (L34) and −0.13 / +1.21 / −0.77 (L54), at or below random"
+  },
+  {
+   "id": "N2742 (L49, +)",
+   "why": "archetype T 3.27 vs F 0.37, but the boundary push (+0.8) gives +1.47 / +2.69 / −0.37, the same as a random neuron (+0.94 / +2.67 / −0.48)"
+  },
+  {
+   "id": "N582 (L50, +)",
+   "why": "the compendium's literary-narration neuron: the boundary push +0.8 gives +1.72 / +1.68 / −0.83, the same as random L50 N2000 (+1.68 / +1.60 / +0.39)"
+  },
+  {
+   "id": "N772 (L39, +) and N1749 (L19/L39, −)",
+   "why": "top decision-point screen hits at the boundary '\\n' (narr state .57 vs speech .33; N1749 on both passes), but their pushes are at random level, and zeroing them leaves the L45 N3727 onset unchanged (−18.9 → −18.9)"
+  }
+ ]
+}

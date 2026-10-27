@@ -13,6 +13,8 @@ CHAT = os.environ.get("EXPLORER_CHAT", "")
 
 LN = {"layer": {"type": "integer", "description": os.environ.get("EXPLORER_LAYER_DESC", "layer, 0-31")},
       "n": {"type": "integer", "description": os.environ.get("EXPLORER_NEURON_DESC", "neuron, 0-9215")}}
+HEAD = {"layer": {"type": "integer", "description": os.environ.get("EXPLORER_LAYER_DESC", "layer, 0-31")},
+        "head": {"type": "integer", "description": os.environ.get("EXPLORER_HEAD_DESC", "head: 0-15 on full-attention layers, 0-31 on linear-attention layers")}}
 TOOLS = [
     {"name": "overview", "description": "Model architecture and which layers have sweep runs (rollouts and rankings).",
      "inputSchema": {"type": "object", "properties": {}}},
@@ -123,7 +125,7 @@ TOOLS = [
      "with the strongest firing). Each neuron has its "
      "pole, score (activation over its usual extreme; 1 = as strong as its usual max), raw activation and steer lens. "
      "`layers` [lo, hi] restricts the layers. Doesn't change the person's screen; use show_text to show them.",
-     "inputSchema": {"type": "object", "properties": {"text": {"type": "string"}, "token": {"type": "string"}, "at": {"type": "integer"},
+     "inputSchema": {"type": "object", "properties": {"text": {"type": "string"}, "at": {"type": "integer", "description": "token index into the returned tokens (negative counts from the end); overrides token"}, "token": {"type": "string"},
                                                        "limit": {"type": "integer", "default": 30},
                                                        "layers": {"type": "array", "items": {"type": "integer"}},
                                                        "chat": {"type": "boolean", "default": False}},
@@ -179,6 +181,40 @@ TOOLS = [
                      "required": ["tab"]}},
     {"name": "select_neuron", "description": "Open a neuron in the explorer: its panel, and its connection web on the map.",
      "inputSchema": {"type": "object", "properties": LN, "required": ["layer", "n"]}},
+    {"name": "head", "description": "One attention head from weights, by role. q / k / v: the earlier neurons whose "
+     "output feeds its query (what it looks for from the current token), its key (what makes an earlier token "
+     "findable) and its value (what it carries); o: the later neurons reading its output. Each role has its top neurons "
+     "(z, logit lens, name) and their steer-lens tokens pooled. `profile`: where it looks over 8 reference texts: dist is "
+     "the mean share of weight on self / previous token / 2-5 back / further / first token, neg the share of negative "
+     "weight (linear-attention heads are signed), src the tokens it reads most against chance, pairs its strongest "
+     "single reads (query <- source) with the text they come from.",
+     "inputSchema": {"type": "object", "properties": HEAD, "required": ["layer", "head"]}},
+    {"name": "neuron_heads", "description": "The attention heads a neuron meets, from weights, by role: q / k / v are "
+     "later heads whose query, key or value reads its output (it shapes what they look for from its token, makes its "
+     "token findable, or is what they carry on); o are heads at its layer or earlier whose output it reads. z per head "
+     "(share of the neuron's vector in that head's space, against a random direction, z-scored over heads); grouped "
+     "heads share one key or value space.",
+     "inputSchema": {"type": "object", "properties": LN, "required": ["layer", "n"]}},
+    {"name": "attention", "description": "Live: one head's attention on a text. At the query token (first containing "
+     "`token`, else the last) the weight on every earlier token, and the strongest single reads anywhere in the text. "
+     "Full attention: softmax weights. Linear attention (Gated DeltaNet): the exact effective weights, signed, absolute "
+     "values summing to 1. first_token_weight is the mean weight on token 0 (the attention sink).",
+     "inputSchema": {"type": "object", "properties": {**HEAD, "text": {"type": "string"}, "at": {"type": "integer", "description": "token index into the returned tokens (negative counts from the end); overrides token"}, "token": {"type": "string"},
+                                                       "chat": {"type": "boolean", "default": False}},
+                     "required": ["layer", "head", "text"]}},
+    {"name": "attn_drive", "description": "Live: which attention heads drive a neuron at one token of a text (first "
+     "containing `token`, else where it fires hardest), and which earlier tokens each top head read that from. The "
+     "activation silu(gate)*up is linearised at that token; each head's contribution is its output there read by that "
+     "linearisation, `share` its fraction of linearised_total (the whole residual's drive, about 2x the activation), "
+     "attention_sum all heads together and rest everything else (MLPs, embedding). `from` splits a head's contribution "
+     "exactly over source tokens.",
+     "inputSchema": {"type": "object", "properties": {**LN, "text": {"type": "string"}, "at": {"type": "integer", "description": "token index into the returned tokens (negative counts from the end); overrides token"}, "token": {"type": "string"},
+                                                       "chat": {"type": "boolean", "default": False},
+                                                       "top": {"type": "integer", "default": 8}},
+                     "required": ["layer", "n", "text"]}},
+    {"name": "select_head", "description": "Open an attention head in the explorer: its q / k / v / o panel, and its "
+     "links on the map.",
+     "inputSchema": {"type": "object", "properties": HEAD, "required": ["layer", "head"]}},
     {"name": "highlight_neurons", "description": "Mark a set of neurons on the 3D map (replaces the previous marks; an "
      "empty list clears them). sign '-' draws a neuron in the negative-pole colour.",
      "inputSchema": {"type": "object", "properties": {"neurons": {"type": "array", "items": {
@@ -230,6 +266,35 @@ def call(name, a):
         return {"ok": True, "neuron": f"L{a['layer']} N{a['n']}", "name": a["name"].strip() or None}
     if name == "names":
         return get("/api/agent/names")
+    if name == "head":
+        r = get("/api/head", layer=a["layer"], head=a["head"])
+        slim = lambda lst: [{"neuron": f"L{c['layer']} N{c['n']}", "z": c["z"], "lens": c.get("lens", [])} for c in lst[:12]]
+        toks = lambda lst: [f"{t['tok']} ({t['n']})" for t in lst[:16]]
+        out = {"head": f"L{a['layer']} h{a['head']}", "kind": "full attention" if r["full"] else "linear attention",
+               "q": {"neurons": slim(r["q"]), "tokens": toks(r["q_toks"])},
+               "k": {"neurons": slim(r["k"]), "tokens": toks(r["k_toks"])},
+               "v": {"neurons": slim(r["reads"]), "tokens": toks(r["read_toks"])},
+               "o": {"neurons": slim(r["writes"]), "tokens": toks(r["write_toks"])}}
+        try:
+            p = get("/api/head/profile", layer=a["layer"], head=a["head"])
+            if "dist" in p:
+                out["profile"] = {"dist": dict(zip(["self", "prev", "2-5 back", "further", "first"], p["dist"])),
+                                  "neg": p["neg"], "src": p["src"],
+                                  "pairs": [{"query": x["qt"], "source": x["kt"], "weight": x["w"], "text": x["text"][:160]}
+                                            for x in p["pairs"]]}
+        except Exception:
+            pass
+        return out
+    if name == "neuron_heads":
+        r = get("/api/neuron/heads", layer=a["layer"], n=a["n"])
+        return {role: [{"head": f"L{x['layer']} h{x['heads'][0]}" + (f"-{x['heads'][-1]}" if len(x["heads"]) > 1 else ""), "z": x["z"]}
+                       for x in rows] for role, rows in r["roles"].items()}
+    if name == "attention":
+        return post("/api/agent/attention", a, timeout=900)
+    if name == "attn_drive":
+        return post("/api/agent/attn_drive", a, timeout=900)
+    if name == "select_head":
+        return post("/api/agent/ui", {"chat": CHAT, "action": "head", "layer": a["layer"], "head": a["head"]})
     if name == "steer":
         return post("/api/agent/steer", a, timeout=900)  # the first call may wait for the model to load
     if name == "top_firing":

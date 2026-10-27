@@ -33,9 +33,9 @@ steered chat, lens, connections and live inference over your own text.
 
 The explorer also runs on [kotodama-tsumugi](https://huggingface.co/LuxiaSL/kotodama-tsumugi-1b), a 1.4B base model
 with looped depth (52 unique layers run as 72 effective positions; 39–58 reuse 19–38) and block attention residuals.
-Code: [github.com/LuxiaSL/kotodama](https://github.com/LuxiaSL/kotodama).
+Code: [github.com/anima-research/kotodama](https://github.com/anima-research/kotodama).
 
-    git clone https://github.com/LuxiaSL/kotodama ../kotodama
+    git clone https://github.com/anima-research/kotodama ../kotodama
     uv sync && uv pip install -e ../kotodama                  # Python >= 3.12
     export EXPLORER_BACKEND=koto EXPLORER_KOTO_CKPT=hf:LuxiaSL/kotodama-tsumugi-1b
     uv run python explorer/build_connections_koto.py --out koto-data/cache/connections.npz   # once
@@ -65,7 +65,17 @@ What differs from Qwen3.5 (details in `explorer/runtime_koto.py`):
   model's shape, its two looped passes, base-model prompting, the tools that exist here, and the binding questions it
   is studied for. It adapts the Qwen prompt's method; `agent_prompt.local.md` still appends.
 
-The sweep (map, list and embeddings views) is not ported to kotodama yet; neuron pages, steered chat, lenses,
+**The tsumugi neuron compendium** ships in `koto/`: `compendium-tsumugi-release.json` (what the **lib** tab loads on
+the kotodama backend until a library is uploaded with `POST /api/compendium`) and a readable
+`COMPENDIUM-tsumugi-release.md`. It holds the named neurons found so far on the release checkpoint (each with its
+pole, both loop positions where it matters, what it fires on, steering examples, a J-lens verdict and a confidence
+mark), multi-neuron recipes to try, and the imposters: neurons that fired on a concept without carrying it. Every entry
+was found with the method in `agent_prompt_koto.md` (matched contrasts, steering on raw openings, break tests, pass 1
+vs pass 2) and spot-checked on a fresh opening.
+
+The attention-head tools (head slabs on the map, head rows and patterns, the agent's head tools) read the Qwen
+backend's head captures and answer "not available" on kotodama. The sweep (map, list and embeddings views) is not
+ported to kotodama yet; neuron pages, steered chat, lenses,
 connections, `fires` and live inference work. Serving beyond localhost: `EXPLORER_HOST`, `EXPLORER_ALLOW_HOSTS` and
 `EXPLORER_CLIENTS` allowlist hosts and client addresses.
 

@@ -25,3 +25,8 @@ sweep/pod_template.json
 # kotodama backend data (EXPLORER_KOTO_DATA default)
 koto-data/
 explorer/compendium.json
+# rebuilt on first use
+explorer/cache/head_profiles.json
+
+# experiment scripts
+scripts/

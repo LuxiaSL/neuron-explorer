@@ -226,7 +226,10 @@ class KotoRuntime(base.Runtime):
             out = {l: (mx, amx + 1, mn, amn + 1) for l, (mx, amx, mn, amn) in out.items()}
         return out
 
-    def full_activations(self, ids):
+    def full_activations(self, ids, heads=False):
+        """Every neuron's activation at every token. The kotodama port captures no attention heads, so `heads` (the
+        Qwen backend's head-capture pass) leaves self.heads empty and the head tools report themselves unavailable."""
+        self.heads = None
         acts = super().full_activations(ids)
         if SKIP_POS0 and acts.shape[1]:
             acts[:, 0, :] = 0.0
