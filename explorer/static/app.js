@@ -10,6 +10,15 @@ const api = async (p, body) => {
 addEventListener("unhandledrejection", e => { const el = document.querySelector("#status"); if (el) el.textContent = String(e.reason?.message || e.reason); });
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const fmtDose = d => (d > 0 ? "+" : d < 0 ? "−" : "") + Math.abs(d);
+// draft names come from an automatic naming pass (read-only, /api units and lists carry them as `draft`); a neuron's
+// draft shows only where it has no hand name, muted behind a "draft" chip, with its cluster, category and agreement
+// on hover
+const draftName = d => String((d && (d.label || d.cluster_name)) || "");
+const draftTitle = d => ["draft (automatic, unverified)", d.cluster_name && `cluster${d.cluster != null ? ` ${d.cluster}` : ""}: ${d.cluster_name}`,
+  d.category, d.family, d.agreement && `${d.agreement} agreement`].filter(Boolean).join(" · ");
+const draftHTML = d => draftName(d) ? `<span class="draft" title="${esc(draftTitle(d))}"><span class="dchip">draft</span>${esc(draftName(d))}</span> ` : "";
+const nameHTML = (name, draft) => name ? `<b>${esc(name)}</b> ` : draftHTML(draft);
+const unitNameHTML = (layer, n) => { const u = state.unitMap[layer]?.get(n); return nameHTML(u?.name, u?.draft); };
 
 let agentSelecting = false, agentMarked = false;  // Claude's selections and marks (see agentUi); declared early, openNeuron reads them on load
 const state = { layer: null, units: {}, unitMap: {}, focus: null, view: "map", chat: { mode: "add", dir: "writes", dose: { add: 0.8, mul: 2 } } };
@@ -37,7 +46,7 @@ const map = createMap($("#map"), $("#layer-labels"), arch, {
       const key = `h/${p.layer}/${p.head}`, head = `L${p.layer} h${p.head}`;
       const body = () => {
         const h = hoverCache.get(key);
-        const side = (sg, list) => list.slice(0, 3).map(c => `<div class="tl"><span class="sgn">${sg}</span><span class="faint">L${c.layer} N${c.n}</span>  ${esc(state.unitMap[c.layer]?.get(c.n)?.name || (c.lens || []).slice(0, 4).map(t => t.trim() || t).join("  "))}</div>`).join("");
+        const side = (sg, list) => list.slice(0, 3).map(c => `<div class="tl"><span class="sgn">${sg}</span><span class="faint">L${c.layer} N${c.n}</span>  ${unitNameHTML(c.layer, c.n) || esc((c.lens || []).slice(0, 4).map(t => t.trim() || t).join("  "))}</div>`).join("");
         return h ? side("←", h.reads) + side("→", h.writes) : "";
       };
       showTipHTML(x, y, head, body());
@@ -62,7 +71,10 @@ const map = createMap($("#map"), $("#layer-labels"), arch, {
     const head = `L${p.layer} N${p.n}${u ? `  mass ${u.z.toFixed(1)}` : ""}`;
     const body = () => {
       const h = hoverCache.get(key), rows = [];
+      const d = u?.draft || h?.draft;
       if (u?.name) rows.push(`<div class="tname">${esc(u.name)}</div>`);
+      else if (draftName(d)) rows.push(`<div class="tname draft"><span class="dchip">draft</span>${esc(draftName(d))}`
+        + `${d.category || d.agreement ? ` <span class="faint">${esc([d.category, d.agreement && `${d.agreement} agreement`].filter(Boolean).join(" · "))}</span>` : ""}</div>`);
       if (u) rows.push(`<div class="twords">${esc(u.words.join("  "))}</div>`);
       if (h && h.steer) rows.push(`<div class="tl"><span class="sgn up">+</span>${esc(h.steer.join("  "))}</div><div class="tl"><span class="sgn down">−</span>${esc(h.steer_neg.join("  "))}</div>`);
       if (h) rows.push(`<div class="tl faintline"><span class="sgn up">+</span>${esc(h.lens.join("  "))}</div><div class="tl faintline"><span class="sgn down">−</span>${esc(h.lens_neg.join("  "))}</div>`);
@@ -500,9 +512,9 @@ const headRoleLinks = h => [["q", h.q], ["k", h.k], ["v", h.reads], ["o", h.writ
 function headHTML() {
   const H = state.headInfo, f = state.focus;
   if (!H || !f || f.kind !== "head" || H.layer !== f.layer || H.head !== f.n) return "";
-  const line = c => { const nm = state.unitMap[c.layer]?.get(c.n)?.name;
+  const line = c => {
     return `<div class="nline" data-nl="${c.layer}" data-nn="${c.n}"><span class="id">L${c.layer} N${c.n}</span>`
-      + `<span class="w">${nm ? `<b>${esc(nm)}</b> ` : ""}${esc((c.lens || []).slice(0, 4).map(t => t.trim() || t).join("  "))}</span><span class="z">${c.z.toFixed(0)}</span></div>`; };
+      + `<span class="w">${unitNameHTML(c.layer, c.n)}${esc((c.lens || []).slice(0, 4).map(t => t.trim() || t).join("  "))}</span><span class="z">${c.z.toFixed(0)}</span></div>`; };
   const role = (r, list) => `<div class="wsum"><div class="lab"><span class="sw" style="background:${ROLE_COL[r]}"></span>${r}</div>${(list || []).slice(0, 10).map(line).join("")}</div>`;
   return role("q", H.q) + role("k", H.k) + role("v", H.reads) + role("o", H.writes);
 }
@@ -511,21 +523,24 @@ function renderList() {
   if (lensResults) return renderResults(lensResults, $("#rows"));
   const q = $("#filter").value.trim().toLowerCase(), showR = $("#show-random").checked;
   const units = (state.units[state.layer] || []).filter(u => (showR || u.kind === "neuron") &&
-    (!q || u.words.some(w => w.includes(q)) || u.name.toLowerCase().includes(q) || String(u.n) === q));
+    (!q || u.words.some(w => w.includes(q)) || u.name.toLowerCase().includes(q) || String(u.n) === q ||
+      [u.draft?.label, u.draft?.cluster_name].some(s => s && String(s).toLowerCase().includes(q))));
   const rnd = (state.units[state.layer] || []).filter(u => u.kind === "random").map(u => u.z);
   const floor = rnd.length ? Math.max(...rnd) : -Infinity;
   const ol = $("#rows");
   ol.innerHTML = units.slice(0, 600).map(u => `<li data-n="${u.n}" data-kind="${u.kind}" class="${u.kind}${u.z <= floor ? " below" : ""}${state.focus && state.focus.n === u.n && state.focus.layer === state.layer && u.kind === "neuron" ? " sel" : ""}">
     <span class="n">${u.kind === "random" ? "r" : "N"}${u.n}</span><span class="z">${u.z.toFixed(1)}</span>
-    <span class="w">${u.name ? `<b>${esc(u.name)}</b> ` : ""}${esc(u.words.join(" "))}</span></li>`).join("");
+    <span class="w">${nameHTML(u.name, u.draft)}${esc(u.words.join(" "))}</span></li>`).join("");
 }
 // lens hits (net tab) or what fired (run tab)
 function renderResults(r, ol) {
   if (!r.ready) { ol.innerHTML = `<li class="head">${esc(state.statusText || "indexing lens")}</li>`; return; }
   const rows = (r.results || []).map(x => `<li class="res${x.swept === false ? " unswept" : ""}" data-l="${x.layer}" data-n="${x.n}" data-kind="neuron">
-    <span class="n">L${x.layer} N${x.n}</span><span class="sg ${x.sign === "+" ? "up" : "down"}">${r.fires ? `${x.sign === "+" ? "" : "−"}${x.score.toFixed(1)}×` : `${x.sign === "+" ? "+" : "−"}${x.rank + 1}`}</span>
-    <span class="w">${r.fires ? `<span class="tk">"${esc(x.token)}"</span>` : ""}${x.name ? `<b>${esc(x.name)}</b> ` : ""}${esc(x.lens.join(" "))}</span></li>`).join("");
-  const head = r.fires ? `${r.total ?? 0} neurons pass · score = activation ÷ its typical extreme` : `${r.total ?? 0} neurons · ${r.tokens ?? 0} tokens`;
+    <span class="n">L${x.layer} N${x.n}</span>${x.sign == null ? `<span class="sg"><span class="dchip">${x.src === "draft" ? "draft" : "name"}</span></span>`
+      : `<span class="sg ${x.sign === "+" ? "up" : "down"}">${r.fires ? `${x.sign === "+" ? "" : "−"}${x.score.toFixed(1)}×` : `${x.sign === "+" ? "+" : "−"}${x.rank + 1}`}</span>`}
+    <span class="w">${r.fires ? `<span class="tk">"${esc(x.token)}"</span>` : ""}${nameHTML(x.name, x.draft)}${x.src === "draft" && x.name ? draftHTML(x.draft) : ""}${esc(x.lens.join(" "))}</span></li>`).join("");
+  const byName = [r.named && `${r.named} by name`, r.drafted && `${r.drafted} by draft`].filter(Boolean).join(" · ");
+  const head = r.fires ? `${r.total ?? 0} neurons pass · score = activation ÷ its typical extreme` : `${r.total ?? 0} neurons · ${r.tokens ?? 0} tokens${byName ? ` · ${byName}` : ""}`;
   ol.innerHTML = `<li class="head">${head}</li>` + rows;
 }
 // a head chip marks its head on the map while hovered
@@ -611,7 +626,7 @@ $("#focus-tab").onclick = () => focusEl.classList.contains("on") ? setFocusColla
 const focusEl = $("#focus");
 // closing the neuron keeps the panel up when Claude is the open tab
 $("#f-close").onclick = () => { flushName(); if (running) running.abort(); state.focus = null; $("#list").classList.remove("has-focus");
-  map.selectHead(null); state.headInfo = null; state.nheads = null; $("#f-name").style.display = ""; lightHeads(state.inf.pos);
+  map.selectHead(null); state.headInfo = null; state.nheads = null; $("#f-name").style.display = ""; showDraft(null); lightHeads(state.inf.pos);
   if (curTab() === "claude") syncTabs(); else focusEl.classList.remove("on");
   setFocusCollapsed(false); map.select(null); refreshWeb(); renderAgentActions(); scatter.select(null, null); saveFocus(); renderList(); };
 document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => setTab(b.dataset.tab));
@@ -649,7 +664,7 @@ async function openNeuron(layer, n, kind = "neuron", push = true, fly = true) {
   setFocusCollapsed(false);
   $("#f-id").textContent = kind === "random" ? `L${layer} random ${n}` : `L${layer} N${n}`;
   $("#f-rank").textContent = "";
-  setNameField(state.unitMap[layer]?.get(n)?.name || "");
+  setNameField(state.unitMap[layer]?.get(n)?.name || ""); showDraft(kind === "neuron" ? state.unitMap[layer]?.get(n)?.draft : null);
   $("#f-name").disabled = kind !== "neuron";
   $("#tab-examples").innerHTML = ""; $("#tab-details").innerHTML = "";
   state.thread = []; renderThread(); $("#c-reads").innerHTML = ""; $("#c-lens").innerHTML = "";
@@ -662,7 +677,7 @@ async function openNeuron(layer, n, kind = "neuron", push = true, fly = true) {
   refreshWeb(); renderAgentActions();
   const u = await api(`/api/unit?layer=${layer}&n=${n}&kind=${kind}`);
   if (!isFocus(layer, n, kind)) return;
-  setNameField(u.name || "");
+  setNameField(u.name || ""); showDraft(u.draft);
   if (u.stats) $("#f-rank").textContent = `#${u.rank ?? "—"}/${u.n_ranked}  mass ${(u.stats.mass ?? u.stats.z).toFixed(1)}  null ${(u.stats.null_pct * 100).toFixed(0)}%`;
   renderExamples(u);
   renderDetails(u);
@@ -696,7 +711,7 @@ async function openHead(layer, head) {
   $("#list").classList.add("has-focus");
   if ($("#list").classList.contains("hidden")) setListHidden(false);
   $("#f-id").textContent = `L${layer} h${head}`; $("#f-rank").textContent = "";
-  $("#f-name").style.display = "none";
+  $("#f-name").style.display = "none"; showDraft(null);
   if (curTab() === "claude") syncTabs(); else { focusEl.classList.remove("on"); syncTabs(); }
   syncEdge(); updateInsets();
   refreshWeb(); renderAgentActions();
@@ -797,9 +812,9 @@ function renderConnections() {
   const row = c => {
     const pole = c.sign > 0 ? 1 : -1, toks = (pole > 0 ? c.lens : c.lens_neg) || [];
     const logit = (pole > 0 ? c.logit : c.logit_neg) || [];
-    const sweep = c.name || (c.words || []).join(" ");
+    const sweep = c.name ? esc(c.name) : draftHTML(c.draft) + esc((c.words || []).join(" "));
     return `<tr data-l="${c.layer}" data-n="${c.n}" class="con"><td class="pole ${pole > 0 ? "up" : "down"}">${pole > 0 ? "↑" : "↓"}</td>
-      <td>${toks.slice(0, 4).map(tok).join("")}${logit.length ? `<div class="logit">${logit.slice(0, 4).map(tok).join("")}</div>` : ""}${sweep ? `<div class="dim">${esc(sweep)}</div>` : ""}</td>
+      <td>${toks.slice(0, 4).map(tok).join("")}${logit.length ? `<div class="logit">${logit.slice(0, 4).map(tok).join("")}</div>` : ""}${sweep.trim() ? `<div class="dim">${sweep}</div>` : ""}</td>
       <td class="num dim">${c.z.toFixed(0)}</td><td class="mono faint">L${c.layer}·${c.n}</td></tr>`;
   };
   el.outerHTML = `<div id="d-con-wrap">
@@ -852,6 +867,18 @@ function flushName() {
 // the name field wraps long names: a one-line textarea that grows to fit; Enter finishes editing instead of a newline
 function sizeNameField() { const t = $("#f-name"); t.style.height = "auto"; t.style.height = `${t.scrollHeight}px`; }
 function setNameField(v) { $("#f-name").value = v; sizeNameField(); }
+// the open neuron's draft under its hand name, apart from it and read-only: the draft's name, then its label, cluster,
+// category, family and agreement
+function showDraft(d) {
+  const el = $("#f-draft");
+  el.hidden = !d;
+  if (!d) { el.innerHTML = ""; return; }
+  const row = (k, v, cls = "") => v != null && v !== "" ? `<span>${k}</span><span class="${cls}">${esc(v)}</span>` : "";
+  const cluster = d.cluster_name ? `${d.cluster_name}${d.cluster != null ? `  #${d.cluster}` : ""}` : d.cluster;
+  const agree = ["high", "medium", "low"].includes(d.agreement) ? `agree-${d.agreement}` : "";
+  el.innerHTML = `<div title="an automatic naming pass, unverified; the hand name above always wins"><span class="dchip">draft</span><span class="dname">${esc(draftName(d) || "—")}</span></div>
+    <div class="dmeta">${row("label", d.label)}${row("cluster", cluster)}${row("category", d.category)}${row("family", d.family)}${row("agreement", d.agreement, agree)}</div>`;
+}
 $("#f-name").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); e.target.blur(); } });
 $("#f-name").addEventListener("input", () => { const t = $("#f-name"); if (t.value.includes("\n")) t.value = t.value.replace(/\n+/g, " "); sizeNameField(); });
 addEventListener("resize", sizeNameField);

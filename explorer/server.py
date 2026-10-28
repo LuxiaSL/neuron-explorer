@@ -34,6 +34,9 @@ from runtime import CACHE, NO_MODEL  # noqa: E402  (Runtime is picked by the bac
 RUNS = os.environ.get("EXPLORER_RUNS") or os.path.join(ROOT, "runs")
 STATS = os.environ.get("EXPLORER_STATS") or os.path.join(ROOT, "stats")
 NAMES = os.environ.get("EXPLORER_NAMES") or os.path.join(ROOT, "explorer", "names.json")
+# draft names from an automatic pass (clusters of neurons, each with a category and an agreement grade): read-only,
+# shown where a neuron has no hand name; a hand name always wins
+DRAFTS = os.environ.get("EXPLORER_DRAFTS") or os.path.join(os.path.dirname(os.path.abspath(NAMES)), "drafts.json")
 PORT = int(os.environ.get("PORT", 8791))
 HOST = os.environ.get("EXPLORER_HOST", "127.0.0.1")
 CACHE_DIR = os.environ.get("EXPLORER_CACHE") or os.path.join(ROOT, "explorer", "cache")
@@ -167,6 +170,46 @@ def names():
     return json.load(open(NAMES)) if os.path.exists(NAMES) else {}
 
 
+_drafts = {"key": None, "neurons": {}}
+_drafts_lock = threading.Lock()
+
+
+def drafts():
+    """The draft layer, {"L{layer}/N{n}": {cluster, cluster_name, category, family, agreement, label}}, from DRAFTS
+    (cached by mtime; the file can run to tens of MB). A missing or unreadable file is an empty layer."""
+    try:
+        key = os.path.getmtime(DRAFTS)
+    except OSError:
+        return {}
+    with _drafts_lock:
+        if _drafts["key"] != key:
+            try:
+                with open(DRAFTS) as f:
+                    d = json.load(f)
+                nd = d.get("neurons") if isinstance(d, dict) else None
+                neurons = {k: v for k, v in nd.items() if isinstance(v, dict)} if isinstance(nd, dict) else {}
+            except (OSError, UnicodeDecodeError, json.JSONDecodeError) as e:
+                print(f"drafts: {DRAFTS} unreadable ({e}); no drafts shown", file=sys.stderr)
+                neurons = {}
+            _drafts.update(key=key, neurons=neurons)
+        return _drafts["neurons"]
+
+
+def draft_name(entry):
+    """A draft's display name: its label, else its cluster's name ("" for no draft)."""
+    entry = entry or {}
+    return str(entry.get("label") or entry.get("cluster_name") or "").strip()
+
+
+def draft_brief(entry):
+    """A draft in one line for Claude's tools: name · category · agreement (None for no draft)."""
+    if not entry:
+        return None
+    agree = entry.get("agreement")
+    parts = (draft_name(entry), entry.get("category"), f"{agree} agreement" if agree else None)
+    return " · ".join(str(x) for x in parts if x) or None
+
+
 @app.get("/api/index")
 def index():
     runs = layer_runs()
@@ -179,16 +222,18 @@ def units(layer: int):
     d = load_layer(layer)
     if d is None:
         return []
-    nm = names()
+    nm, dr = names(), drafts()
     return [{"kind": u["kind"], "n": u["neuron"], "z": u.get("mass", u["z"]), "null_pct": u["null_pct"],
-             "words": [w for w, _, _ in u["words"][:5]], "name": nm.get(f"L{layer}/N{u['neuron']}", "")}
+             "words": [w for w, _, _ in u["words"][:5]], "name": nm.get(f"L{layer}/N{u['neuron']}", ""),
+             "draft": dr.get(f"L{layer}/N{u['neuron']}") if u["kind"] == "neuron" else None}
             for u in d["units"]]
 
 
 @app.get("/api/unit")
 def unit(layer: int, n: int, kind: str = "neuron"):
     d = load_layer(layer)
-    out = {"layer": layer, "n": n, "kind": kind, "name": names().get(f"L{layer}/N{n}", "")}
+    out = {"layer": layer, "n": n, "kind": kind, "name": names().get(f"L{layer}/N{n}", ""),
+           "draft": drafts().get(f"L{layer}/N{n}") if kind == "neuron" else None}
     if d is None:
         return out
     rec = next((u for u in d["units"] if u["neuron"] == n and u["kind"] == kind), None)
@@ -275,10 +320,11 @@ def rollout(layer: int, i: int):
 async def connections(layer: int, n: int, k: int = 24, lens: int = 5):
     out = await asyncio.to_thread(rt.connections, layer, n, k, lens)
     words = await asyncio.to_thread(lambda: {l: ranked_words(l) for l in {c["layer"] for c in out["down"] + out["up"]}})
-    nm = names()
+    nm, dr = names(), drafts()
     out = {side: [dict(c) for c in out[side]] for side in ("down", "up")}
     for c in out["down"] + out["up"]:
         c["name"] = nm.get(f"L{c['layer']}/N{c['n']}", "")
+        c["draft"] = dr.get(f"L{c['layer']}/N{c['n']}")
         c["words"] = words[c["layer"]].get(c["n"], [])
     return out
 
@@ -288,7 +334,7 @@ async def hover(layer: int, n: int):
     con = await asyncio.to_thread(rt.connections, layer, n, 16, 0)
     lens = await asyncio.to_thread(rt.lens, layer, n, 8)
     return {"lens": lens["up"], "lens_neg": lens["down"], "steer": lens.get("steer_up"), "steer_neg": lens.get("steer_down"),
-            "con": con}
+            "con": con, "draft": drafts().get(f"L{layer}/N{n}")}
 
 
 @app.get("/api/lens")
@@ -441,23 +487,48 @@ def lens_index():
     return _lens if "up" in _lens else None
 
 
+def _neuron_key(key):
+    """(layer, n) from a "L{layer}/N{n}" key, or None."""
+    try:
+        l, n = key.split("/")
+        return int(l[1:]), int(n[1:])
+    except (AttributeError, ValueError):
+        return None
+
+
+def name_hits(q, nm, dr):
+    """Neurons whose hand name, or draft label or cluster name, contains q (lowercase), as (layer, n, src) with src
+    "name" or "draft": hand names first, then drafts, each in layer and neuron order. A neuron matched by its hand name
+    is listed once."""
+    hand = [k for k, v in nm.items() if q in str(v).lower()]
+    seen = set(hand)
+    draft = [k for k, e in dr.items() if k not in seen and
+             (q in str(e.get("label") or "").lower() or q in str(e.get("cluster_name") or "").lower())]
+    out = []
+    for keys, src in ((hand, "name"), (draft, "draft")):
+        out += sorted((*ln, src) for ln in map(_neuron_key, keys) if ln)
+    return out
+
+
 @app.get("/api/search")
 async def search(q: str, limit: int = 300):
-    """Neurons whose logit lens (top 12 up or down) contains a token matching q (case-insensitive substring)."""
+    """Neurons whose logit lens (top 12 up or down) contains a token matching q (case-insensitive substring), after the
+    neurons whose hand name or draft name (label or cluster name) contains q (src "name" / "draft", no sign or rank;
+    they fill at most the larger of half the limit and what the lens hits leave)."""
     idx = lens_index()
     q = q.strip().lower()
     if idx is None or len(q) < 2:
         return {"ready": idx is not None, "results": []}
     vocab = await asyncio.to_thread(rt.vocab_strings)
+    nm, dr = names(), drafts()
+    named = await asyncio.to_thread(name_hits, q, nm, dr)
     match = np.array([i for i, t in enumerate(vocab) if q in t.lower()], dtype=np.int32)
-    if not len(match):
-        return {"ready": True, "results": [], "tokens": 0}
     out = []
     st = rt.steer_index()
     sources = [("+", idx["up"], "lens"), ("-", idx["down"], "lens")]
     if st is not None:
         sources += [("+", st["up"], "steer"), ("-", st["down"], "steer")]
-    for sign, arr, src in sources:
+    for sign, arr, src in sources if len(match) else ():
         hit = np.isin(arr, match)  # [L, N, k]
         count = hit.sum(-1)
         best = np.where(hit, np.arange(arr.shape[-1]), 99).min(-1)
@@ -469,13 +540,20 @@ async def search(q: str, limit: int = 300):
         if (row[2], row[3], row[4]) not in seen:
             seen.add((row[2], row[3], row[4])); uniq.append(row)
     out = uniq
-    nm, res = names(), []
-    sw = {l: swept(l) for l in {row[2] for row in out[:limit]}}
-    for rank, _, l, n, sign, src in out[:limit]:
+    n_named = builtins.min(len(named), builtins.max(limit // 2, limit - len(out)))
+    named_rows, out_rows = named[:n_named], out[:builtins.max(limit - n_named, 0)]
+    res, (L, N) = [], idx["up"].shape[:2]
+    sw = {l: swept(l) for l in {row[0] for row in named_rows} | {row[2] for row in out_rows}}
+    for l, n, src in named_rows:
+        lens = [vocab[t] for t in idx["up"][l, n, :6]] if 0 <= l < L and 0 <= n < N else []
+        res.append({"layer": l, "n": n, "sign": None, "rank": None, "src": src, "name": nm.get(f"L{l}/N{n}", ""),
+                    "draft": dr.get(f"L{l}/N{n}"), "swept": n in sw[l], "lens": lens})
+    for rank, _, l, n, sign, src in out_rows:
         arr = (idx if src == "lens" else st)["up" if sign == "+" else "down"]
         res.append({"layer": l, "n": n, "sign": sign, "rank": rank, "src": src, "name": nm.get(f"L{l}/N{n}", ""),
-                    "swept": n in sw[l], "lens": [vocab[t] for t in arr[l, n, :6]]})
-    return {"ready": True, "results": res, "tokens": int(len(match)), "total": len(out)}
+                    "draft": dr.get(f"L{l}/N{n}"), "swept": n in sw[l], "lens": [vocab[t] for t in arr[l, n, :6]]})
+    return {"ready": True, "results": res, "tokens": int(len(match)), "total": len(out) + len(named),
+            "named": sum(1 for r in named if r[2] == "name"), "drafted": sum(1 for r in named if r[2] == "draft")}
 
 
 ACT_SCALE = os.path.join(CACHE_DIR, "act_scale.npz")
@@ -500,13 +578,13 @@ async def fires(text: str, limit: int = 300, chat: bool = False):
             top = np.argpartition(-arr, limit)[:limit]
             cand += [(float(arr[n]), l, int(n), sign, int(idx[n]), float(raw[n])) for n in top]
     cand.sort(reverse=True)
-    idx_lens, nm = lens_index(), names()
+    idx_lens, nm, dr = lens_index(), names(), drafts()
     vocab = await asyncio.to_thread(rt.vocab_strings)
     res = []
     for score, l, n, sign, t, raw in cand[:limit]:
         lens = [vocab[k] for k in (idx_lens["up"] if sign == "+" else idx_lens["down"])[l, n, :6]] if idx_lens else []
         res.append({"layer": l, "n": n, "sign": sign, "score": round(score, 2), "act": round(raw, 2), "token": toks[t],
-                    "pos": t, "name": nm.get(f"L{l}/N{n}", ""), "lens": lens})
+                    "pos": t, "name": nm.get(f"L{l}/N{n}", ""), "draft": dr.get(f"L{l}/N{n}"), "lens": lens})
     return {"ready": True, "results": res, "tokens": toks}
 
 
@@ -577,14 +655,14 @@ async def infer_view(pos: int = -1, sign: str = "both", lo: int = 0, hi: int = 9
     view[~keep] = 0
     ls, ns = np.nonzero(keep)
     order = np.argsort(-np.abs(best[ls, ns]))[:limit]
-    nm, res = names(), []
+    nm, dr, res = names(), drafts(), []
     for o in order:
         l, n = int(ls[o]), int(ns[o]); sg = "+" if best[l, n] > 0 else "-"
         lens = [vocab[k] for k in (idx["up"] if sg == "+" else idx["down"])[l, n, :6]] if idx is not None else []
         t = int(at[l, n])
         res.append({"layer": l, "n": n, "sign": sg, "score": round(float(abs(best[l, n])), 2),
                     "act": round(float(A[l, t, n]), 2), "token": toks[t], "pos": t,
-                    "name": nm.get(f"L{l}/N{n}", ""), "lens": lens})
+                    "name": nm.get(f"L{l}/N{n}", ""), "draft": dr.get(f"L{l}/N{n}"), "lens": lens})
     blob = base64.b64encode(view.astype(np.float16).tobytes()).decode()
     return {"results": res, "total": int(keep.sum()), "map": blob, "shape": list(view.shape)}
 
@@ -986,7 +1064,7 @@ def act_range(layer, n):
 def agent_overview():
     runs = layer_runs()
     return {"model": MODEL_NAME, "arch": ARCH, "layers_with_sweeps": sorted(runs),
-            "named_neurons": len(names()), "live_model": not NO_MODEL}
+            "named_neurons": len(names()), "drafted_neurons": len(drafts()), "live_model": not NO_MODEL}
 
 
 @app.get("/api/agent/names")
@@ -999,7 +1077,7 @@ async def agent_neuron(layer: int, n: int):
     lens = await asyncio.to_thread(rt.lens, layer, n, 12)
     con = await connections(layer, n, 24, 5)
     u = await asyncio.to_thread(unit, layer, n)
-    out = {"neuron": f"L{layer} N{n}", "name": u.get("name", ""),
+    out = {"neuron": f"L{layer} N{n}", "name": u.get("name", ""), "draft": u.get("draft"),
            "lens_up": lens["up"], "lens_down": lens["down"],
            "steer_up": lens.get("steer_up"), "steer_down": lens.get("steer_down"),
            "kl_up": lens.get("kl_up"), "kl_down": lens.get("kl_down"),
@@ -1009,7 +1087,8 @@ async def agent_neuron(layer: int, n: int):
            "sweep": {"rank": u.get("rank"), "n_ranked": u.get("n_ranked"), "stats": u.get("stats"),
                      "n_rollouts": len(u.get("rollouts", []))} if "run" in u else None}
     slim = lambda c: {"neuron": f"L{c['layer']} N{c['n']}", "z": c["z"], "sign": c["sign"], "steer_up": c.get("lens"),
-                      "steer_down": c.get("lens_neg"), "words": c.get("words") or None, "name": c.get("name") or None}
+                      "steer_down": c.get("lens_neg"), "words": c.get("words") or None, "name": c.get("name") or None,
+                      "draft": draft_brief(c.get("draft"))}
     if "jlens_up" in lens:
         pr = await asyncio.to_thread(rt.jlens_pair, layer, n, 10)
         if pr.get("available"):
@@ -1032,7 +1111,7 @@ def agent_cone(layer: int, n: int, k: int = 2, limit: int = 120):
             best[key] = (z, hop if key not in best else best[key][1])
     v = rt.vocab_strings()
     idx = rt.steer_index() or rt.lens_index()
-    nm = names()
+    nm, dr = names(), drafts()
     nodes = sorted(best.items(), key=lambda kv: (abs(kv[1][1]), -abs(kv[1][0])))[:limit]
     per_hop = {}
     for _, (_, hop) in best.items():
@@ -1040,7 +1119,8 @@ def agent_cone(layer: int, n: int, k: int = 2, limit: int = 120):
     return {"links": len(links), "neurons": len(best), "per_hop": dict(sorted(per_hop.items())),
             "note": "weight-only direct-path links chained; paths past hop 1 are leads, not circuits",
             "nodes": [{"neuron": f"L{l} N{m}", "hop": hop, "z": round(abs(z), 1), "sign": 1 if z > 0 else -1,
-                       "steer_up": [v[t] for t in idx["up"][l, m, :5]], "name": nm.get(f"L{l}/N{m}") or None}
+                       "steer_up": [v[t] for t in idx["up"][l, m, :5]], "name": nm.get(f"L{l}/N{m}") or None,
+                       "draft": draft_brief(dr.get(f"L{l}/N{m}"))}
                       for (l, m), (z, hop) in nodes]}
 
 
@@ -1254,8 +1334,9 @@ async def agent_compare(req: Request):
              for i, t in enumerate((b.get("texts") or [])[:24])]
     if not neurons or not texts:
         return {"error": "give neurons [{layer, n}] and texts [text or {label, text}]"}
-    nm = names()
+    nm, dr = names(), drafts()
     rows = {nk: {"neuron": f"L{nk[0]} N{nk[1]}", "name": nm.get(f"L{nk[0]}/N{nk[1]}") or None,
+                 "draft": draft_brief(dr.get(f"L{nk[0]}/N{nk[1]}")),
                  "act_range": act_range(*nk), "by_text": {}} for nk in neurons}
     for label, text in texts:
         ids, acts, score = await score_text(text, b.get("chat", False))
@@ -1297,13 +1378,14 @@ async def agent_fires(req: Request):
         S = S.copy(); S[:lo] = 0; S[hi + 1:] = 0
     flat = np.argsort(-np.abs(S).ravel())[: int(b.get("limit", 30))]
     st = rt.steer_index() or rt.lens_index()
-    v, nm, N = rt.vocab_strings(), names(), S.shape[1]
+    v, nm, dr, N = rt.vocab_strings(), names(), drafts(), S.shape[1]
     res = []
     for i in flat:
         l, n = int(i // N), int(i % N)
         sg = "+" if S[l, n] > 0 else "-"
         res.append({"neuron": f"L{l} N{n}", "pole": sg, "score": round(float(abs(S[l, n])), 2),
                     "act": round(float(acts[l, pos, n]), 3), "name": nm.get(f"L{l}/N{n}") or None,
+                    "draft": draft_brief(dr.get(f"L{l}/N{n}")),
                     "steer": [v[t] for t in st["up" if sg == "+" else "down"][l, n, :6]]})
     return {"tokens": toks, "at": pos, "token": toks[pos],
             "note": "score = activation / the neuron's typical extreme on that side; 1 = as strong as its usual max",

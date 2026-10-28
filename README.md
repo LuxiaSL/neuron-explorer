@@ -73,6 +73,20 @@ mark), multi-neuron recipes to try, and the imposters: neurons that fired on a c
 was found with the method in `agent_prompt_koto.md` (matched contrasts, steering on raw openings, break tests, pass 1
 vs pass 2) and spot-checked on a fresh opening.
 
+**Draft names** come from an automatic naming pass over every neuron (clusters of neurons, each with a category and an
+agreement grade). They are read-only and sit under the hand names: where a neuron has no hand name, lists, search
+results, tooltips and connections show its draft, muted behind a `draft` chip, and the neuron panel shows the draft's
+cluster, category, family, agreement and label apart from the editable name. A hand name always wins. Lens search also
+matches hand names, draft labels and cluster names (`src` `name` / `draft`). The file is `EXPLORER_DRAFTS` (default
+`drafts.json` beside the names file, so `koto-data/drafts.json` on this backend), re-read when it changes; without it
+the explorer shows no drafts:
+
+    {"meta": {...},                         # free-form: how the pass was made
+     "neurons": {"L25/N1234": {"cluster": 17, "cluster_name": "...", "category": "...", "family": "...",
+                               "agreement": "high", "label": "..."}}}     # agreement high | medium | low; label may be null
+
+`/api/units` rows and `/api/unit` carry the entry as `draft` (null for none); Claude's tools see it too.
+
 The attention-head tools (head slabs on the map, head rows and patterns, the agent's head tools) read the Qwen
 backend's head captures and answer "not available" on kotodama. The sweep (map, list and embeddings views) is not
 ported to kotodama yet; neuron pages, steered chat, lenses,

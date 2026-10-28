@@ -43,19 +43,22 @@ TOOLS = [
                                                        "k": {"type": "integer", "default": 2}},
                      "required": ["layer", "n"]}},
     {"name": "search_lens", "description": "Neurons whose logit lens or steer lens (top 12, either pole) contains a token "
-     "matching the query (case-insensitive substring). Best matches first.",
+     "matching the query (case-insensitive substring). Best matches first, after the neurons whose hand name or draft "
+     "name contains the query (src \"name\" / \"draft\"). A `draft` is an automatic naming pass (a cluster with a "
+     "category and an agreement grade), unverified: a lead to test, never a finding; a hand name always wins.",
      "inputSchema": {"type": "object", "properties": {"query": {"type": "string"},
                                                        "limit": {"type": "integer", "default": 40}},
                      "required": ["query"]}},
     {"name": "top_units", "description": "A layer's neurons ranked by sweep word-cluster mass against random-direction "
-     "controls, with top words and names. Empty when the layer has no sweep run.",
+     "controls, with top words, names and drafts (unverified automatic names). Empty when the layer has no sweep run.",
      "inputSchema": {"type": "object", "properties": {"layer": LN["layer"], "limit": {"type": "integer", "default": 30}},
                      "required": ["layer"]}},
     {"name": "set_name", "description": "Name a neuron in the explorer (the name field in its panel, shown in lists and on "
      "the map), or clear its name with an empty string. Only when the person asks, or after they agree to a name you "
      "suggested.",
      "inputSchema": {"type": "object", "properties": {**LN, "name": {"type": "string"}}, "required": ["layer", "n", "name"]}},
-    {"name": "names", "description": "Every neuron the person has named so far, as {\"L14/N3262\": name}.",
+    {"name": "names", "description": "Every neuron the person has named so far, as {\"L14/N3262\": name}. Draft names "
+     "are not listed here; they come with each neuron (`draft`) and in search_lens.",
      "inputSchema": {"type": "object", "properties": {}}},
     {"name": "steer", "description": "Live: generate from a chat prompt three ways in one batch, pushed up, unsteered, "
      "and pushed down (greedy). Steer one neuron (layer, n) or several at once (neurons: [{layer, n, dose?, mode?}]; all "
