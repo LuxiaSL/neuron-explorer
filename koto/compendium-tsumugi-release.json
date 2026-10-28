@@ -5,13 +5,17 @@
   "position": "effective position 0–71; 19–38 = core pass 1, 39–58 = the same weights on pass 2 (pass-2 position = pass-1 + 20)",
   "dose": "units of the median norm entering that position's FFN; 0.5–0.8 shows a direction coherently, 1.5+ often loops",
   "pole": "the sign that carries the concept: steer with +dose for '+', −dose for '−'",
-  "confidence": "none = firing, steering and controls agree; (?) one view weak or untested; (??) one view only; (???) views disagree"
+  "confidence": "none = firing, steering and controls agree; (?) one view weak or untested; (??) one view only; (???) views disagree",
+  "steer_positions": "the position(s) where steering is the lever, read from the steer notes; 'positions' lists where the neuron fires (both passes of one module for core neurons), which is not where it steers. Empty = not a clean lever"
  },
  "neurons": [
   {
    "id": "N2293",
    "positions": [
     26,
+    46
+   ],
+   "steer_positions": [
     46
    ],
    "pole": "-",
@@ -132,6 +136,9 @@
    "positions": [
     37
    ],
+   "steer_positions": [
+    37
+   ],
    "pole": "-",
    "name": "the story doesn't hold: lie / failed alibi",
    "confidence": "(?)",
@@ -227,6 +234,9 @@
   {
    "id": "L34 N3146",
    "positions": [
+    34
+   ],
+   "steer_positions": [
     34
    ],
    "pole": "+",
@@ -326,6 +336,7 @@
    "positions": [
     71
    ],
+   "steer_positions": [],
    "pole": "-",
    "name": "last-position token neuron: tempers ' camera' after an update",
    "confidence": "(??)",
@@ -391,6 +402,10 @@
   {
    "id": "N3614",
    "positions": [
+    32,
+    52
+   ],
+   "steer_positions": [
     32,
     52
    ],
@@ -512,6 +527,9 @@
     32,
     52
    ],
+   "steer_positions": [
+    52
+   ],
    "pole": "+",
    "name": "hearing someone close by, unseen",
    "confidence": "(?)",
@@ -629,6 +647,9 @@
    "positions": [
     61
    ],
+   "steer_positions": [
+    61
+   ],
    "pole": "+",
    "name": "tender closeness, whispered comfort → kissing",
    "confidence": "",
@@ -698,6 +719,9 @@
    "id": "N3495",
    "positions": [
     28,
+    48
+   ],
+   "steer_positions": [
     48
    ],
    "pole": "+",
@@ -818,6 +842,9 @@
     32,
     52
    ],
+   "steer_positions": [
+    52
+   ],
    "pole": "+",
    "name": "sky, stars and sea in elevated prose → heavens-and-earth lyric",
    "confidence": "(?)",
@@ -935,6 +962,9 @@
     30,
     50
    ],
+   "steer_positions": [
+    50
+   ],
    "pole": "+",
    "name": "close of an elevated narrative sentence → archaic old-book narration",
    "confidence": "(?)",
@@ -1049,6 +1079,10 @@
   {
    "id": "N788",
    "positions": [
+    36,
+    56
+   ],
+   "steer_positions": [
     36,
     56
    ],
@@ -1169,6 +1203,9 @@
     29,
     49
    ],
+   "steer_positions": [
+    29
+   ],
    "pole": "-",
    "name": "chronicle / parable cadence ('the people of the world… And')",
    "confidence": "(???)",
@@ -1285,6 +1322,9 @@
    "id": "N2247",
    "positions": [
     35,
+    55
+   ],
+   "steer_positions": [
     55
    ],
    "pole": "-",
@@ -1405,6 +1445,10 @@
     36,
     56
    ],
+   "steer_positions": [
+    36,
+    56
+   ],
    "pole": "+",
    "name": "cool smirking nonchalance → laughs, smirks, 'as if nothing'",
    "confidence": "(?)",
@@ -1519,6 +1563,10 @@
   {
    "id": "N3695",
    "positions": [
+    33,
+    53
+   ],
+   "steer_positions": [
     33,
     53
    ],
@@ -1639,6 +1687,9 @@
     25,
     45
    ],
+   "steer_positions": [
+    45
+   ],
    "pole": "-",
    "name": "scene-setting prose, door-creaks attractor",
    "confidence": "(?)",
@@ -1656,6 +1707,9 @@
    "id": "N3864",
    "positions": [
     27,
+    47
+   ],
+   "steer_positions": [
     47
    ],
    "pole": "+",
@@ -1677,6 +1731,9 @@
     34,
     54
    ],
+   "steer_positions": [
+    54
+   ],
    "pole": "+",
    "name": "the writer steps forward: commentary in the author's own voice",
    "confidence": "(?)",
@@ -1694,6 +1751,9 @@
    "id": "N2120",
    "positions": [
     29,
+    49
+   ],
+   "steer_positions": [
     49
    ],
    "pole": "+",
@@ -1715,6 +1775,9 @@
     30,
     50
    ],
+   "steer_positions": [
+    50
+   ],
    "pole": "+",
    "name": "scholarly apparatus: footnote text → 'See also / see note'",
    "confidence": "(?)",
@@ -1732,6 +1795,9 @@
    "id": "N1877",
    "positions": [
     36,
+    56
+   ],
+   "steer_positions": [
     56
    ],
    "pole": "+",
@@ -1753,6 +1819,7 @@
     29,
     49
    ],
+   "steer_positions": [],
    "pole": "+",
    "name": "commentary-on-the-text detector (no lever)",
    "confidence": "(??)",
