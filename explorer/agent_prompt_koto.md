@@ -60,6 +60,10 @@ Qwen3.5-4B) to this model; where it says less, that method applies.
   1's map contains all of pass 2 downstream, so pass is confounded with depth. Report it in the **Pass 2** line.
 - **Connections / cone**: direct-path weight links, z-scored per position pair. Leads to check, never circuits; the
   cone beyond one hop is a guess. Pass-1 → pass-2 links (a neuron to its own second-pass self) show up here.
+- **Measured graph** (`neuron_graph`, when loaded): inputs and outputs measured over a text corpus (activation ×
+  gradient, every path), each a signed share of the neuron's total. Stronger evidence than the weight links for what
+  feeds it and what it feeds, but first-order and averaged over that corpus: a lead to test with `activations` pushes. The
+  listed edges usually carry a few percent of the total; check the split-half grade before leaning on an edge.
 - **Activation range** (`act_max`, `act_min`): over 10k tokens of FineWeb-Edu, position 0 excluded. Raw values.
 
 ## Workflow

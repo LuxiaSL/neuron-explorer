@@ -87,6 +87,24 @@ the explorer shows no drafts:
 
 `/api/units` rows and `/api/unit` carry the entry as `draft` (null for none); Claude's tools see it too.
 
+**The measured neuron graph** lists, for each neuron, the earlier neurons that drive it most on real text and the
+later neurons that it drives. An edge is activation × gradient summed over a text corpus, and it counts every path
+between the two neurons. The weight-only connections, by contrast, follow the direct path alone. For kotodama-tsumugi
+the graph is the public dataset
+[LuxiaSL/kotodama-tsumugi-1b-neuron-graph](https://huggingface.co/datasets/LuxiaSL/kotodama-tsumugi-1b-neuron-graph);
+its card defines every array. To turn it on, download `graph.safetensors` and point `EXPLORER_GRAPH` at it:
+
+    huggingface-cli download --repo-type dataset LuxiaSL/kotodama-tsumugi-1b-neuron-graph graph.safetensors --local-dir koto-data
+    export EXPLORER_GRAPH=koto-data/graph.safetensors
+
+Without the variable, or with a file that is missing, unreadable or measured on another shape of model, the explorer
+shows no graph. The file is memory-mapped, and a neuron's rows are read only when that neuron is opened. The neuron
+panel's Details tab then shows its 12 strongest inputs and outputs. Each one is a signed share of the neuron's total
+input or output, and each one opens that neuron on click. A bar shows how much the listed edges carry together. A badge
+gives how well the input list reproduces across two halves of the corpus (split-half ρ: ≥ .8, .6–.8, < .6). An edge
+too large for the file's storage is shown as at least the largest finite edge in its list (`≥`). `GET /api/graph?layer=
+&n=&k=` returns the same data, and Claude's `neuron_graph` tool reads it.
+
 The attention-head tools (head slabs on the map, head rows and patterns, the agent's head tools) read the Qwen
 backend's head captures and answer "not available" on kotodama. The sweep (map, list and embeddings views) is not
 ported to kotodama yet; neuron pages, steered chat, lenses,

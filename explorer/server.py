@@ -29,6 +29,7 @@ if BACKEND == "koto":  # a kotodama model's caches, runs, stats and names live a
     for _sub in ("cache", "runs", "stats"):
         os.makedirs(os.environ[f"EXPLORER_{_sub.upper()}"], exist_ok=True)
 from rank import compute_units  # noqa: E402
+import neuron_graph  # noqa: E402
 from runtime import CACHE, NO_MODEL  # noqa: E402  (Runtime is picked by the backend below)
 
 RUNS = os.environ.get("EXPLORER_RUNS") or os.path.join(ROOT, "runs")
@@ -37,6 +38,9 @@ NAMES = os.environ.get("EXPLORER_NAMES") or os.path.join(ROOT, "explorer", "name
 # draft names from an automatic pass (clusters of neurons, each with a category and an agreement grade): read-only,
 # shown where a neuron has no hand name; a hand name always wins
 DRAFTS = os.environ.get("EXPLORER_DRAFTS") or os.path.join(os.path.dirname(os.path.abspath(NAMES)), "drafts.json")
+# the measured neuron graph (neuron_graph.py: each neuron's strongest inputs and outputs over a text corpus), read-only;
+# without it the explorer shows no graph
+GRAPH = os.environ.get("EXPLORER_GRAPH", "")
 PORT = int(os.environ.get("PORT", 8791))
 HOST = os.environ.get("EXPLORER_HOST", "127.0.0.1")
 CACHE_DIR = os.environ.get("EXPLORER_CACHE") or os.path.join(ROOT, "explorer", "cache")
@@ -210,11 +214,31 @@ def draft_brief(entry):
     return " · ".join(str(x) for x in parts if x) or None
 
 
+_graph_warned = set()
+
+
+def graph():
+    """The neuron graph from GRAPH, or None: no file, an unreadable one, or one measured on another shape of model
+    (its positions x width must be this model's layers x MLP width)."""
+    g = neuron_graph.load(GRAPH)
+    if g is None:
+        return None
+    want = (ARCH["n_layers"], ARCH["inter"])
+    if (g.positions, g.width) != want:
+        if g.path not in _graph_warned:
+            _graph_warned.add(g.path)
+            print(f"graph: {g.path} is {g.positions} x {g.width} neurons, this model {want[0]} x {want[1]}; "
+                  "no graph shown", file=sys.stderr)
+        return None
+    return g
+
+
 @app.get("/api/index")
 def index():
     runs = layer_runs()
     return {"model": MODEL_NAME, "arch": ARCH,
-            "layers": {str(l): os.path.basename(p) for l, p in sorted(runs.items())}, "status": rt.status}
+            "layers": {str(l): os.path.basename(p) for l, p in sorted(runs.items())}, "status": rt.status,
+            "graph": graph() is not None}
 
 
 @app.get("/api/units")
@@ -335,6 +359,26 @@ async def hover(layer: int, n: int):
     lens = await asyncio.to_thread(rt.lens, layer, n, 8)
     return {"lens": lens["up"], "lens_neg": lens["down"], "steer": lens.get("steer_up"), "steer_neg": lens.get("steer_down"),
             "con": con, "draft": drafts().get(f"L{layer}/N{n}")}
+
+
+@app.get("/api/graph")
+def graph_edges(layer: int, n: int, k: int = 12):
+    """The neuron's measured connections (neuron_graph.py): its k strongest inputs and outputs over a text corpus, each
+    a signed share of its total input or output (edge / sum |edge|), how much the listed and stored ones carry, and
+    the split-half reliability of its input list. available: false without a graph."""
+    g = graph()
+    if g is None:
+        return {"available": False}
+    try:
+        out = g.edges(layer, n, builtins.max(1, builtins.min(k, g.k_in)))
+    except IndexError as e:
+        return {"available": True, "error": str(e)}
+    nm, dr = names(), drafts()
+    for side in ("inputs", "outputs"):
+        for c in (out[side] or {}).get("edges", []):
+            c["name"] = nm.get(f"L{c['layer']}/N{c['n']}", "")
+            c["draft"] = dr.get(f"L{c['layer']}/N{c['n']}")
+    return {"available": True, **out}
 
 
 @app.get("/api/lens")
@@ -1064,7 +1108,8 @@ def act_range(layer, n):
 def agent_overview():
     runs = layer_runs()
     return {"model": MODEL_NAME, "arch": ARCH, "layers_with_sweeps": sorted(runs),
-            "named_neurons": len(names()), "drafted_neurons": len(drafts()), "live_model": not NO_MODEL}
+            "named_neurons": len(names()), "drafted_neurons": len(drafts()), "neuron_graph": graph() is not None,
+            "live_model": not NO_MODEL}
 
 
 @app.get("/api/agent/names")
@@ -1099,6 +1144,35 @@ async def agent_neuron(layer: int, n: int):
     out["writes_into"] = [slim(c) for c in con["down"]]
     out["reads_from"] = [slim(c) for c in con["up"]]
     return out
+
+
+@app.get("/api/agent/graph")
+def agent_graph(layer: int, n: int, k: int = 12):
+    """/api/graph for Claude's tools: neurons as "L{layer} N{n}", shares in percent, names and one-line drafts."""
+    r = graph_edges(layer, n, k)
+    if not r.get("available"):
+        return {"available": False, "reason": "no neuron graph loaded (EXPLORER_GRAPH)"}
+    if "error" in r:
+        return r
+    pct = lambda x: round(100 * x, 3)
+
+    def side(s):
+        if s is None:
+            return None
+        return {"total_abs": round(s["total"], 4), "net": round(s["net"], 4), "stored": s["stored"],
+                "listed_carry_pct": pct(s["shown_share"]), "stored_carry_pct": pct(s["stored_share"]),
+                "edges": [{"neuron": f"L{c['layer']} N{c['n']}", "share_pct": pct(c["share"]),
+                           "edge": round(c["edge"], 4), **({"at_least": True} if c["clipped"] else {}),
+                           "name": c["name"] or None, "draft": draft_brief(c["draft"])} for c in s["edges"]]}
+    rel = r["reliability"]
+    rnd = lambda x: None if x is None else round(x, 3)
+    return {"neuron": f"L{layer} N{n}", "inputs": side(r["inputs"]), "outputs": side(r["outputs"]),
+            "reliability": {"split_half_rho": rnd(rel["rho"]), "top64_overlap": rnd(rel["top64_overlap"]),
+                            "grade": rel["grade"]},
+            "note": "measured over a text corpus: edge = activation x gradient summed over tokens, by every path; "
+                    "share_pct = edge / the neuron's total |edge| on that side (signed); at_least = the stored edge "
+                    "overflowed and is at least this; inputs null = nothing measured feeds it, outputs null = nothing "
+                    "measured reads it"}
 
 
 @app.get("/api/agent/cone")

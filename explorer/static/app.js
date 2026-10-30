@@ -762,7 +762,9 @@ function renderDetails(u) {
     h += `<table class="dtable"><tr><th class="num">dose</th><th class="num">push</th><th class="num">distinct-4</th><th class="num">capped</th><th class="num">logprob</th></tr>` +
       Object.entries(s.dose).map(([d, v]) => `<tr><td class="num">${d}</td><td class="num">${v.rel_push.toFixed(2)}</td><td class="num">${v.distinct4.toFixed(2)}</td><td class="num">${(v.capped * 100).toFixed(0)}%</td><td class="num">${v.logprob.toFixed(2)}</td></tr>`).join("") + `</table>`;
   }
-  h += `<div id="d-lens" class="slot">—</div><div class="lab" style="margin-top:18px">connections</div><div id="d-con" class="slot">—</div>`;
+  h += `<div id="d-lens" class="slot">—</div>`;
+  if (index.graph) h += `<div id="d-graph" class="slot">—</div>`;
+  h += `<div class="lab" style="margin-top:18px">connections${index.graph ? " · weight-only" : ""}</div><div id="d-con" class="slot">—</div>`;
   $("#tab-details").innerHTML = h;
 }
 
@@ -770,6 +772,9 @@ async function loadLive(layer, n) {
   $("#d-lens") && ($("#d-lens").textContent = "…");
   $("#d-con") && ($("#d-con").textContent = "…");
   const conP = api(`/api/connections?layer=${layer}&n=${n}&k=24`);
+  if (index.graph) api(`/api/graph?layer=${layer}&n=${n}&k=12`).then(r => {
+    if (isFocus(layer, n, "neuron") && $("#d-graph")) $("#d-graph").innerHTML = graphHTML(r, layer);
+  }, err => { if (isFocus(layer, n, "neuron") && $("#d-graph")) $("#d-graph").textContent = err.message; });
   let lens;
   try { lens = await api(`/api/lens?layer=${layer}&n=${n}`); }
   catch (err) { if (isFocus(layer, n, "neuron") && $("#d-lens")) $("#d-lens").textContent = err.message; }
@@ -803,6 +808,36 @@ function jpairDetailHTML(P) {
   const sh = (t, shared) => `<span class="tok${shared.includes(t) ? " sh" : ""}">${esc(t)}</span>`;
   const col = s => `<div><div class="lab">L${s.layer} · pass ${s === P.pass1 ? 1 : 2}${s.stab10 != null ? ` · split-half ${s.stab10}` : ""}</div><div class="up">${s.up.map(t => sh(t, P.shared_up)).join("")}</div><div class="down">${s.down.map(t => sh(t, P.shared_down)).join("")}</div></div>`;
   return `<div class="lab" style="margin-top:14px">J · pass 1 vs pass 2 · overlap + ${P.overlap_up} / − ${P.overlap_down}${specific(P)} · cos ${P.cos ?? "—"}</div><div class="lens jpairs">${col(P.pass1)}${col(P.pass2)}</div>`;
+}
+// the measured graph (/api/graph, when the server has one): the open neuron's strongest inputs and outputs over a text
+// corpus, each a signed share of its total input or output; the bar shows how much the listed edges carry together,
+// the badge how well its input list reproduces across two halves of the corpus
+const pctS = v => v < 0.1 ? `${(v * 100).toFixed(1)}%` : `${Math.round(v * 100)}%`;
+function graphHTML(r, layer) {
+  if (!r.available) return "";
+  if (r.error) return `<div class="slot">${esc(r.error)}</div>`;
+  const side = (s, empty) => {
+    if (!s) return `<div class="slot">${empty}</div>`;
+    const mx = Math.max(1e-30, ...s.edges.map(c => Math.abs(c.share)));
+    const col = v => v < 0 ? "var(--down)" : "var(--up)";
+    const fan = s.edges.map(c => `<i style="width:${(Math.abs(c.share) * 100).toFixed(2)}%;background:${col(c.share)}"></i>`).join("");
+    const rows = s.edges.map(c => `<button type="button" class="gedge" data-gl="${c.layer}" data-gn="${c.n}" title="edge ${c.edge.toPrecision(4)}${c.clipped ? " (at least: the stored value overflowed)" : ""}">
+      <span class="mono dim">L${c.layer}·${c.n}</span><span class="gnm">${nameHTML(c.name, c.draft)}</span>
+      <span class="gbw"><span style="width:${(Math.abs(c.share) / mx * 100).toFixed(1)}%;background:${col(c.share)}"></span></span>
+      <span class="mono gv" style="color:${col(c.share)}">${c.clipped ? "≥" : ""}${c.share < 0 ? "−" : "+"}${(Math.abs(c.share) * 100).toFixed(2)}%</span></button>`).join("");
+    return `<div class="gcarry dim">the ${s.edges.length} strongest carry ${pctS(s.shown_share)} of ${s.stored} stored (${pctS(s.stored_share)})</div>
+      <div class="gfan" role="img" aria-label="the ${s.edges.length} strongest carry ${pctS(s.shown_share)} of the total">${fan}</div><div class="glist">${rows}</div>`;
+  };
+  const rel = r.reliability, rho = rel.rho, ov = rel.top64_overlap;
+  const badge = rho != null
+    ? `<span class="grel rel-${rel.grade}" title="Spearman correlation of its input edges between two halves of the corpus${ov != null ? `; ${Math.round(ov * 64)} of its top 64 inputs recur` : ""}">inputs reproduce across corpus halves: ρ ${rho.toFixed(2).replace(/^0/, "")}</span>`
+    : ov != null ? `<span class="grel" title="no split-half ρ for this neuron">top-64 inputs recur across corpus halves: ${Math.round(ov * 64)} of 64</span>` : "";
+  const last = arch.n_layers - 1;
+  return `<div class="lab" style="margin-top:18px">connections · measured over a text corpus</div>
+    <div class="gdesc dim">How much each earlier neuron's activity drives this one (activation × gradient), and what this one drives in turn. Bars and percentages are shares of its total input or output.</div>
+    ${badge ? `<div>${badge}</div>` : ""}
+    <div class="ghd">inputs</div>${side(r.inputs, layer === 0 ? "The first layer reads the token embedding; no neuron feeds it." : "No measured input (a near-silent neuron).")}
+    <div class="ghd">outputs</div>${side(r.outputs, layer === last ? "The last layer writes straight to the output; no neuron reads it." : "No measured output.")}`;
 }
 // sign = sign(g * u): the sign of the reading neuron's activation that the writing neuron's direction produces on its
 // own. Reversing the writer reverses g and u together, so the sign holds for either direction of the writer.
@@ -846,6 +881,7 @@ function goToNeuron(layer, n, kind = "neuron") {
 }
 $("#tab-details").addEventListener("click", e => {
   const th = e.target.closest("tr[data-hl]"); if (th) return openHead(+th.dataset.hl, +th.dataset.hh);
+  const ge = e.target.closest("[data-gl]"); if (ge) return goToNeuron(+ge.dataset.gl, +ge.dataset.gn);
   const tr = e.target.closest("tr[data-l]"); if (tr) goToNeuron(+tr.dataset.l, +tr.dataset.n);
 });
 $("#tab-details").addEventListener("mouseover", e => { const th = e.target.closest("tr[data-hl]"); map.hoverHead(th ? +th.dataset.hl : null, th ? +th.dataset.hh : null); });

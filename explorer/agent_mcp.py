@@ -34,6 +34,16 @@ TOOLS = [
      "inputSchema": {"type": "object", "properties": {**LN, "k": {"type": "integer", "default": 2},
                                                        "limit": {"type": "integer", "default": 120}},
                      "required": ["layer", "n"]}},
+    {"name": "neuron_graph", "description": "The neuron's MEASURED connections, when a neuron graph is loaded: its k "
+     "strongest inputs (earlier neurons that drive it) and outputs (later neurons it drives) over a text corpus, where "
+     "an edge is activation x gradient summed over tokens, by every path (attention, residual routing, other neurons). "
+     "Unlike the weight-only direct-path links in `neuron` and `cone`, these are measured on real text. Each edge is a "
+     "signed share of the neuron's total input or output (share_pct; positive raises the other neuron, negative lowers "
+     "it); listed_carry_pct is how much the listed edges carry together (the rest is a long tail). reliability: "
+     "split-half Spearman rho of its input list (high >= .8, mid .6-.8, low < .6). at_least marks an edge too large "
+     "for storage. available: false when no graph is loaded.",
+     "inputSchema": {"type": "object", "properties": {**LN, "k": {"type": "integer", "default": 12}},
+                     "required": ["layer", "n"]}},
     {"name": "web_summary", "description": "The token summary of the neuron's web, the same one the person sees in the "
      "left panel: steer-lens tokens pooled over its cone, each connected neuron read on the pole the chain drives, ranked "
      "by lift over that layer's base rate. `toward` / `away`: what its downstream neurons push the model toward and away "
@@ -251,6 +261,8 @@ def call(name, a):
         return u
     if name == "cone":
         return get("/api/agent/cone", layer=a["layer"], n=a["n"], k=a.get("k", 2), limit=a.get("limit", 120))
+    if name == "neuron_graph":
+        return get("/api/agent/graph", layer=a["layer"], n=a["n"], k=a.get("k", 12))
     if name == "web_summary":
         r = get("/api/web/summary", layer=a["layer"], n=a["n"], first=a.get("first", 5), k=a.get("k", 2), top=20)
         slim = lambda lst: [f"{t['tok']} ({t['n']})" for t in lst]
